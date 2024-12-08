@@ -5,6 +5,7 @@ pub mod error;
 pub mod resource;
 pub mod shell_execute_resource;
 pub mod utils;
+mod resource_provider;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]

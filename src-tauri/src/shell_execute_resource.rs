@@ -1,5 +1,5 @@
 use crate::error::OCLError;
-use crate::resource::{ExecutableResource, Resource, ResourceLocation, ResourceType};
+use crate::resource::{ExecutableResource, GenericResource, Resource, ResourceLocation, ResourceType};
 use crate::utils::wide_string;
 use log::error;
 use std::ffi::OsString;
@@ -99,6 +99,17 @@ impl ShellExecuteResource {
                 shortcut_name, code
             );
             Err(OCLError::LaunchFailed(shortcut_name.into()))
+        }
+    }
+}
+
+impl From<GenericResource> for ShellExecuteResource {
+    fn from(generic_resource: GenericResource) -> Self {
+        Self {
+            name: generic_resource.name().to_string(),
+            path: generic_resource.path().clone(),
+            icon: generic_resource.path().clone(),
+            resource_type: generic_resource.resource_type().clone(),
         }
     }
 }
