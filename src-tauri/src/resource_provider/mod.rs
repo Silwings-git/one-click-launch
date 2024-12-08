@@ -1,11 +1,12 @@
-mod os_resource;
 mod db_resource;
+mod os_resource;
 
+use crate::error::OCLError;
 use crate::resource::GenericResource;
 
 pub trait ResourceProvider {
     /// 获取所有资源
-    fn fetch_resources(&self) -> Vec<GenericResource>;
+    fn fetch_resources(&self) -> Result<Vec<GenericResource>, OCLError>;
 }
 
 pub struct CompositeResourceProvider {
@@ -25,11 +26,11 @@ impl CompositeResourceProvider {
 }
 
 impl ResourceProvider for CompositeResourceProvider {
-    fn fetch_resources(&self) -> Vec<GenericResource> {
+    fn fetch_resources(&self) -> Result<Vec<GenericResource>, OCLError> {
         let mut all_resources = Vec::new();
         for provider in &self.providers {
-            all_resources.extend(provider.fetch_resources());
+            all_resources.extend(provider.fetch_resources()?);
         }
-        all_resources
+        Ok(all_resources)
     }
 }
