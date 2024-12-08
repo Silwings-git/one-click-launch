@@ -13,7 +13,7 @@ pub struct Shortcut {
     /// 工作目录
     working_dir_path: Option<PathBuf>,
     /// 应用程序ICON路径
-    icon_path: Option<PathBuf>,
+    icon_path: Option<ResourceLocation>,
 }
 
 impl Shortcut {
@@ -22,7 +22,7 @@ impl Shortcut {
         shortcut_path: Option<PathBuf>,
         target_path: Option<PathBuf>,
         working_dir_path: Option<PathBuf>,
-        icon_path: Option<PathBuf>,
+        icon_path: Option<ResourceLocation>,
     ) -> Self {
         Self {
             name,
@@ -48,11 +48,7 @@ impl Resource for Shortcut {
     }
 
     fn icon(&self) -> Option<ResourceLocation> {
-        if let Some(icon_path) = &self.icon_path {
-            Some(ResourceLocation::from(icon_path))
-        } else {
-            None
-        }
+        self.icon_path.clone()
     }
 
     fn resource_type(&self) -> ResourceType {

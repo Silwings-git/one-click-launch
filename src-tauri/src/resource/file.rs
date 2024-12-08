@@ -5,11 +5,15 @@ pub struct LaunchFile {
     name: String,
     file_path: Option<PathBuf>,
     /// ICON路径
-    icon_path: Option<PathBuf>,
+    icon_path: Option<ResourceLocation>,
 }
 
 impl LaunchFile {
-    pub fn new(name: String, file_path: Option<PathBuf>, icon_path: Option<PathBuf>) -> Self {
+    pub fn new(
+        name: String,
+        file_path: Option<PathBuf>,
+        icon_path: Option<ResourceLocation>,
+    ) -> Self {
         Self {
             name,
             file_path,
@@ -32,11 +36,7 @@ impl Resource for LaunchFile {
     }
 
     fn icon(&self) -> Option<ResourceLocation> {
-        if let Some(app_path) = &self.icon_path {
-            Some(ResourceLocation::from(app_path))
-        } else {
-            None
-        }
+        self.icon_path.clone()
     }
 
     fn resource_type(&self) -> ResourceType {

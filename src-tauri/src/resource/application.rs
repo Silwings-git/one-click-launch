@@ -6,7 +6,7 @@ use std::path::PathBuf;
 pub struct Application {
     name: String,
     app_path: Option<PathBuf>,
-    icon_path: Option<PathBuf>,
+    icon_path: Option<ResourceLocation>,
 }
 
 impl Application {
@@ -16,7 +16,7 @@ impl Application {
     /// - `name`: 应用程序的名称
     /// - `path`: 可选的应用程序路径
     /// - `icon_path`: 可选的应用程序图标路径
-    pub fn new(name: String, app_path: Option<PathBuf>, icon_path: Option<PathBuf>) -> Self {
+    pub fn new(name: String, app_path: Option<PathBuf>, icon_path: Option<ResourceLocation>) -> Self {
         Application {
             name,
             app_path,
@@ -39,11 +39,7 @@ impl Resource for Application {
     }
 
     fn icon(&self) -> Option<ResourceLocation> {
-        if let Some(icon_path) = &self.icon_path {
-            Some(ResourceLocation::from(icon_path))
-        } else {
-            None
-        }
+        self.icon_path.clone()
     }
 
     fn resource_type(&self) -> ResourceType {

@@ -4,12 +4,16 @@ use url::Url;
 pub struct WebPage {
     name: String,
     url: Option<Url>,
-    icon: Option<String>,
+    icon_path: Option<ResourceLocation>,
 }
 
 impl WebPage {
-    pub fn new(name: String, url: Option<Url>, icon: Option<String>) -> WebPage {
-        Self { name, url, icon }
+    pub fn new(name: String, url: Option<Url>, icon_path: Option<ResourceLocation>) -> WebPage {
+        Self {
+            name,
+            url,
+            icon_path,
+        }
     }
 }
 
@@ -27,7 +31,7 @@ impl Resource for WebPage {
     }
 
     fn icon(&self) -> Option<ResourceLocation> {
-        todo!()
+        self.icon_path.clone()
     }
 
     fn resource_type(&self) -> ResourceType {

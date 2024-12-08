@@ -2,9 +2,10 @@
 
 use crate::error::OCLError;
 use log::error;
+use serde::{Deserialize, Serialize};
 use std::ffi::OsString;
 use std::os::windows::ffi::OsStrExt;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::ptr;
 use url::Url;
 use windows::core::PCWSTR;
@@ -106,6 +107,7 @@ pub enum ResourceType {
     File,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ResourceLocation {
     FilePath(PathBuf),
     WebUrl(Url),
