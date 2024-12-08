@@ -1,50 +1,64 @@
-//! 资源模块
-
 use crate::error::OCLError;
+use crate::resource::{ExecutableResource, Resource, ResourceLocation, ResourceType};
+use crate::utils::wide_string;
 use log::error;
-use serde::{Deserialize, Serialize};
 use std::ffi::OsString;
-use std::os::windows::ffi::OsStrExt;
-use std::path::PathBuf;
 use std::ptr;
-use url::Url;
 use windows::core::PCWSTR;
 use windows::Win32::Foundation::{HINSTANCE, HWND};
 use windows::Win32::UI::Shell::ShellExecuteW;
 use windows::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
-
-mod application;
-mod file;
-pub mod shortcut;
-mod web_page;
 
 /// 定义 "open" 操作的宽字符表示作为常量
 const OPEN_OPERATION: &[u16] = &[
     'o' as u16, 'p' as u16, 'e' as u16, 'n' as u16, 0, // Null terminator
 ];
 
-pub trait Resource {
-    /// 获取资源名称
-    fn name(&self) -> &str;
-
-    /// 资源路径
-    fn path(&self) -> Option<ResourceLocation>;
-
-    /// 获取资源图标
-    fn icon(&self) -> Option<ResourceLocation>;
-
-    /// 获取资源类型
-    fn resource_type(&self) -> ResourceType;
+#[derive(Debug)]
+pub struct ShellExecuteResource {
+    name: String,
+    path: Option<ResourceLocation>,
+    icon: Option<ResourceLocation>,
+    resource_type: ResourceType,
 }
 
-/// 可执行资源
-/// 该 trait 扩展了 `Resource`，为可执行资源（如应用程序、脚本文件等）提供了执行的能力。
-pub trait ExecutableResource: Resource {
-    /// 执行可执行资源。
-    ///
-    /// 对于具体的资源类型，该方法将执行相应的操作（如启动应用程序、运行脚本等）。
-    /// 默认实现使用 `ShellExecuteW` API 来执行资源。
+impl Resource for ShellExecuteResource {
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn path(&self) -> Option<ResourceLocation> {
+        self.path.clone()
+    }
+
+    fn icon(&self) -> Option<ResourceLocation> {
+        self.icon.clone()
+    }
+
+    fn resource_type(&self) -> ResourceType {
+        self.resource_type.clone()
+    }
+}
+
+impl ExecutableResource for ShellExecuteResource {
     fn execute(&self) -> Result<(), OCLError> {
+        match self.resource_type() {
+            ResourceType::Application
+            | ResourceType::Shortcut
+            | ResourceType::WebPage
+            | ResourceType::Folder
+            | ResourceType::File => self.execute_resource(),
+            ResourceType::UNKNOWN => Err(OCLError::InvalidOperation(format!(
+                "Resource of type {:?} cannot be executed",
+                self.resource_type()
+            ))),
+        }
+    }
+}
+
+impl ShellExecuteResource {
+    // 单独定义执行逻辑，便于复用
+    fn execute_resource(&self) -> Result<(), OCLError> {
         // 获取资源路径，如果路径不存在则返回错误。
         let lnk_path = self.path().ok_or(OCLError::MissingPath)?;
 
@@ -84,55 +98,7 @@ pub trait ExecutableResource: Resource {
                 "Failed to open shortcut: {} - Status Code: {}",
                 shortcut_name, code
             );
-            Err(OCLError::LaunchFailed(self.name().into()))
+            Err(OCLError::LaunchFailed(shortcut_name.into()))
         }
-    }
-}
-
-/// 将 OsStr 转换为宽字符字符串，并确保以 null 结尾。
-fn wide_string(s: &std::ffi::OsStr) -> Vec<u16> {
-    s.encode_wide().chain(std::iter::once(0)).collect()
-}
-
-pub enum ResourceType {
-    /// 应用程序
-    Application,
-    /// 快捷方式
-    Shortcut,
-    /// 网页
-    WebPage,
-    /// 文件夹
-    Folder,
-    /// 文件
-    File,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum ResourceLocation {
-    FilePath(PathBuf),
-    WebUrl(Url),
-}
-
-impl From<PathBuf> for ResourceLocation {
-    fn from(path: PathBuf) -> Self {
-        ResourceLocation::FilePath(path)
-    }
-}
-
-impl From<&PathBuf> for ResourceLocation {
-    fn from(path: &PathBuf) -> Self {
-        ResourceLocation::FilePath(path.clone())
-    }
-}
-
-impl From<Url> for ResourceLocation {
-    fn from(url: Url) -> Self {
-        ResourceLocation::WebUrl(url)
-    }
-}
-
-impl From<&Url> for ResourceLocation {
-    fn from(url: &Url) -> Self {
-        ResourceLocation::WebUrl(url.clone())
     }
 }
