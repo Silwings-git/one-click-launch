@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "one-click-start",
+  "productName": "one-click-launch",
   "version": "0.1.0",
-  "identifier": "one-click-start",
+  "identifier": "one-click-launch",
   "build": {
     "beforeDevCommand": "yarn dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "one-click-start",
+        "title": "one-click-launch",
         "width": 800,
         "height": 600
       }

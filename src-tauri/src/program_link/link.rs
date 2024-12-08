@@ -1,4 +1,4 @@
-use crate::error::OCSError;
+use crate::error::OCLError;
 use crate::program_link::Shortcut;
 use lnk::ShellLink;
 use std::path::{Path, PathBuf};
@@ -25,19 +25,21 @@ fn list_file(base_path: &str, extension: &str) -> Vec<String> {
     programs
 }
 
-fn build_shortcut_from_path<P: AsRef<Path> + panic::RefUnwindSafe>(path: &P) -> Result<Shortcut, OCSError> {
+fn build_shortcut_from_path<P: AsRef<Path> + panic::RefUnwindSafe>(
+    path: &P,
+) -> Result<Shortcut, OCLError> {
     let r = panic::catch_unwind(|| {
         // open方法遇到Windows PowerShell.lnk时会panic
         match ShellLink::open(path) {
             Ok(sl) => Ok(Shortcut::from(ShellLinkAndPath(sl, &path.as_ref()))),
-            Err(e) => Err(OCSError::ParseShortcutError(e))
+            Err(e) => Err(OCLError::ParseShortcutError(e)),
         }
     });
     match r {
-        Ok(res) => { res }
+        Ok(res) => res,
         Err(err) => {
             println!("解析失败: {}", path.as_ref().display());
-            Err(OCSError::ParseShortcutError1)
+            Err(OCLError::ParseShortcutError1)
         }
     }
     // let shortcut = ShellLink::open(path)?;
@@ -51,7 +53,11 @@ impl From<ShellLinkAndPath<'_, &Path>> for Shortcut {
         Shortcut {
             name: value.1.file_stem().unwrap().to_str().unwrap().to_string(),
             working_dir: value.0.working_dir().clone(),
-            target: value.0.link_info().clone().and_then(|l| l.local_base_path().clone()),
+            target: value
+                .0
+                .link_info()
+                .clone()
+                .and_then(|l| l.local_base_path().clone()),
             location: Some(value.1.display().to_string()),
             icon_location: value.0.icon_location().clone(),
         }
@@ -59,14 +65,16 @@ impl From<ShellLinkAndPath<'_, &Path>> for Shortcut {
 }
 
 /// 尝试解析快捷方式的icon
-fn resolve_icon(shortcut: &Shortcut) -> Result<PathBuf, OCSError> {
-    shortcut.icon_location
+fn resolve_icon(shortcut: &Shortcut) -> Result<PathBuf, OCLError> {
+    shortcut
+        .icon_location
         .as_ref()
         .filter(|l| l.ends_with(".ico"))
         .map(|s| s.clone())
         // 如果没有就尝试到快捷方式指定的工作目录查找第一个icon文件
         .or_else(|| {
-            shortcut.working_dir
+            shortcut
+                .working_dir
                 .as_ref()
                 .map(|dir| list_file(dir, "icon"))
                 .filter(|v| !v.is_empty())
@@ -74,16 +82,18 @@ fn resolve_icon(shortcut: &Shortcut) -> Result<PathBuf, OCSError> {
                 .clone()
         })
         // 如果还没有找到就到预配置列表中检查是否包含相同程序名称的icon文件
-        .or_else(|| find_default_icon_by_program_name(&shortcut.name).map(|path| path.display().to_string()))
+        .or_else(|| {
+            find_default_icon_by_program_name(&shortcut.name).map(|path| path.display().to_string())
+        })
         .map(|path| PathBuf::from(path))
-        .ok_or(OCSError::IconNotFound)
+        .ok_or(OCLError::IconNotFound)
 }
 
 /// 按程序名称查找默认icon
 fn find_default_icon_by_program_name(program_name: &str) -> Option<PathBuf> {
     match program_name {
         "demo" => Some(PathBuf::from("/dev/null")),
-        _ => None
+        _ => None,
     }
 }
 
@@ -94,14 +104,20 @@ mod test {
 
     #[test]
     fn list_file_should_work() {
-        let vec = list_file(r"C:\ProgramData\Microsoft\Windows\Start Menu\Programs", "lnk");
+        let vec = list_file(
+            r"C:\ProgramData\Microsoft\Windows\Start Menu\Programs",
+            "lnk",
+        );
         println!("{:?}", vec);
         println!("{}", vec.len());
     }
 
     #[test]
     fn build_shortcut_from_path_should_work() {
-        let vec = list_file(r"C:\ProgramData\Microsoft\Windows\Start Menu\Programs", "lnk");
+        let vec = list_file(
+            r"C:\ProgramData\Microsoft\Windows\Start Menu\Programs",
+            "lnk",
+        );
         vec.iter()
             .map(|s| build_shortcut_from_path(s))
             .for_each(|e| println!("{:?}", e));
@@ -109,12 +125,19 @@ mod test {
 
     #[test]
     fn resolve_icon_should_work() {
-        let mut vec = list_file(r"C:\ProgramData\Microsoft\Windows\Start Menu\Programs", "lnk");
-        vec.extend(list_file(r"C:\Users\Silwings\AppData\Roaming\Microsoft\Windows\Start Menu\Programs", "lnk"));
+        let mut vec = list_file(
+            r"C:\ProgramData\Microsoft\Windows\Start Menu\Programs",
+            "lnk",
+        );
+        vec.extend(list_file(
+            r"C:\Users\Silwings\AppData\Roaming\Microsoft\Windows\Start Menu\Programs",
+            "lnk",
+        ));
         vec.sort();
         vec.dedup();
         println!("{}", vec.len());
-        let rv = vec.iter()
+        let rv = vec
+            .iter()
             .map(|s| build_shortcut_from_path(s))
             .filter(|p| p.is_ok())
             .map(|p| p.unwrap())
@@ -130,7 +153,8 @@ mod test {
         // 定义PowerShell脚本的路径
         let script_path = Path::new(r"src-tauri/scripts/extract_icon.ps1");
         let source_exe = r"D:\software\develop\jetbrains\RustRover\bin\rustrover64.exe";
-        let output_ico = r"C:\Users\Silwings\AppData\Roaming\JetBrains\RustRover2024.2\scratches\SaveIcon.png";
+        let output_ico =
+            r"C:\Users\Silwings\AppData\Roaming\JetBrains\RustRover2024.2\scratches\SaveIcon.png";
 
         // 检查脚本文件是否存在
         if !script_path.exists() {
@@ -142,7 +166,8 @@ mod test {
         let output = Command::new("powershell.exe")
             .args(&[
                 "-NoProfile",
-                "-ExecutionPolicy", "Bypass",
+                "-ExecutionPolicy",
+                "Bypass",
                 "-File",
                 &script_path.to_string_lossy(),
             ])

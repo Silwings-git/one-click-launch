@@ -1,5 +1,9 @@
-mod program_link;
+use std::env;
+use std::ops::Index;
+
 mod error;
+mod program_link;
+pub mod resource;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
