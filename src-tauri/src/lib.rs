@@ -1,15 +1,14 @@
+use crate::launcher::LaunchAble;
 use std::env;
-use std::ops::Index;
 
 pub mod error;
+mod launcher;
 pub mod resource;
-pub mod shell_execute_resource;
-pub mod utils;
-mod resource_provider;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
 fn greet(name: &str) -> String {
+    name.launch().unwrap();
     format!("Hello, {}! You've been greeted from Rust!", name)
 }
 
