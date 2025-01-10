@@ -237,10 +237,15 @@
   resolved "https://registry.npmmirror.com/@rollup/rollup-win32-x64-msvc/-/rollup-win32-x64-msvc-4.28.0.tgz#cb313feef9ac6e3737067fdf34f42804ac65a6f2"
   integrity sha512-Bvno2/aZT6usSa7lRDL2+hMjVAGjuqaymF1ApZm31JXzniR/hvr14jpU+/z4X6Gt5BPlzosscyJZGUvguXIqeQ==
 
-"@tauri-apps/api@^2", "@tauri-apps/api@^2.0.0":
+"@tauri-apps/api@^2.0.0":
   version "2.1.1"
   resolved "https://registry.npmmirror.com/@tauri-apps/api/-/api-2.1.1.tgz#77d4ddb683d31072de4e6a47c8613d9db011652b"
   integrity sha512-fzUfFFKo4lknXGJq8qrCidkUcKcH2UHhfaaCNt4GzgzGaW2iS26uFOg4tS3H4P8D6ZEeUxtiD5z0nwFF0UN30A==
+
+"@tauri-apps/api@^2.2.0":
+  version "2.2.0"
+  resolved "https://registry.npmmirror.com/@tauri-apps/api/-/api-2.2.0.tgz#daaff2515b1a4ff1e763cf84a414548b02b566c5"
+  integrity sha512-R8epOeZl1eJEl603aUMIGb4RXlhPjpgxbGVEaqY+0G5JG9vzV/clNlzTeqc+NLYXVqXcn8mb4c5b9pJIUDEyAg==
 
 "@tauri-apps/cli-darwin-arm64@2.1.0":
   version "2.1.0"
@@ -307,6 +312,13 @@
     "@tauri-apps/cli-win32-arm64-msvc" "2.1.0"
     "@tauri-apps/cli-win32-ia32-msvc" "2.1.0"
     "@tauri-apps/cli-win32-x64-msvc" "2.1.0"
+
+"@tauri-apps/plugin-dialog@^2.2.0":
+  version "2.2.0"
+  resolved "https://registry.npmmirror.com/@tauri-apps/plugin-dialog/-/plugin-dialog-2.2.0.tgz#2f7b841a982820adbc9c182e0e95acd8d90aa6fc"
+  integrity sha512-6bLkYK68zyK31418AK5fNccCdVuRnNpbxquCl8IqgFByOgWFivbiIlvb79wpSXi0O+8k8RCSsIpOquebusRVSg==
+  dependencies:
+    "@tauri-apps/api" "^2.0.0"
 
 "@tauri-apps/plugin-shell@^2":
   version "2.0.1"

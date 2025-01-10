@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import {ref} from "vue";
 import {invoke} from "@tauri-apps/api/core";
+import {open} from "@tauri-apps/plugin-dialog";
 
 const greetMsg = ref("");
 const name = ref("");
+const selectedFilePath = ref("");
 
 async function greet() {
   // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
@@ -11,6 +13,26 @@ async function greet() {
 }
 
 const imageA = ref("D:\\software\\appliation\\steam\\steam.ico");
+
+// 打开文件选择对话框
+async function selectFile() {
+  try {
+    const filePath = await open({
+      multiple: false, // 禁止多选
+      directory: false, // 选择文件而不是文件夹
+    });
+
+    if (filePath) {
+      selectedFilePath.value = filePath as string; // 保存路径
+      console.log("选择的文件路径:", filePath);
+
+      // 调用后端存储路径的命令
+      await invoke("store_selected_path", { path: filePath });
+    }
+  } catch (error) {
+    console.error("文件选择错误:", error);
+  }
+}
 
 </script>
 
@@ -37,6 +59,13 @@ const imageA = ref("D:\\software\\appliation\\steam\\steam.ico");
     </form>
     <p>{{ greetMsg }}:{{ imageA }}</p>111
     <img :src="imageA" alt=""/>
+
+    <div>
+      <button @click="selectFile">选择文件</button>
+      <p v-if="selectedFilePath">已选择文件路径: {{ selectedFilePath }}</p>
+      <img v-if="selectedFilePath" :src="selectedFilePath" alt="Selected file preview" />
+    </div>
+
   </main>
 </template>
 

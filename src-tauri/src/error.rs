@@ -1,6 +1,7 @@
+use serde::Serialize;
 use thiserror::Error;
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, Serialize)]
 #[non_exhaustive]
 pub enum OneClickLaunchError {
     #[error("Failed to execute command: {0}")]

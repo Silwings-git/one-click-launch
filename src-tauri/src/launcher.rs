@@ -21,29 +21,8 @@ const OPEN_OPERATION: &[u16] = &['o' as u16, 'p' as u16, 'e' as u16, 'n' as u16,
 
 impl LaunchAble for str {
     fn launch(&self) -> Result<()> {
-        match Url::parse(self) {
-            Ok(url) => url.launch(),
-            Err(_) => {
-                let file_path = PathBuf::from_str(self).map_err(|e| {
-                    error!("Failed to parse path: {}", e);
-                    OneClickLaunchError::InvalidPathError(self.to_string())
-                })?;
-                file_path.launch()
-            }
-        }
-    }
-}
-
-impl LaunchAble for Url {
-    fn launch(&self) -> Result<()> {
-        let os_url = OsString::from(self.as_str());
-        execute(&os_url)
-    }
-}
-
-impl LaunchAble for PathBuf {
-    fn launch(&self) -> Result<()> {
-        execute(self.as_os_str())
+        let os_str = OsStr::new(self);
+        execute(os_str)
     }
 }
 
