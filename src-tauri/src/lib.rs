@@ -1,22 +1,41 @@
 use crate::error::OneClickLaunchError;
-use crate::launcher::LaunchAble;
 use anyhow::Result;
 use std::env;
 use tauri::{AppHandle, Manager, State};
 use tauri_plugin_shell::ShellExt;
 pub mod error;
-mod launcher;
-pub mod resource;
+
+mod db;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
-fn greet(app: State<'_, AppState>, name: &str) -> Result<String, OneClickLaunchError> {
+fn greet(app: State<'_, AppState>, path: &str) -> Result<String, OneClickLaunchError> {
+    open_using_default_program(app, path)?;
+
+    Ok(format!("Hello, {}! You've been greeted from Rust!", path))
+}
+
+/// 使用系统默认的程序打开指定的文件或 URL。
+///
+/// # 参数
+/// - `app`: 应用程序状态的引用，用于访问 Tauri 的应用句柄。
+/// - `path`: 表示文件路径或 URL 的字符串切片。
+///
+/// # 返回值
+/// - `Ok(())` 表示操作成功。
+/// - `Err(OneClickLaunchError)` 表示操作失败。
+///
+/// # 错误
+/// - 如果调用 Tauri 的 `shell().open` 方法失败，将返回 `OneClickLaunchError::ExecutionError`。
+fn open_using_default_program(
+    app: State<'_, AppState>,
+    path: &str,
+) -> Result<(), OneClickLaunchError> {
     app.app_handle
         .shell()
-        .open(name, None)
+        .open(path, None)
         .map_err(|e| OneClickLaunchError::ExecutionError(e.to_string()))?;
-
-    Ok(format!("Hello, {}! You've been greeted from Rust!", name))
+    Ok(())
 }
 
 #[tauri::command]
