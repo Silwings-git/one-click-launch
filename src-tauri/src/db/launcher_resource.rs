@@ -7,6 +7,7 @@ use sqlx::{Executor, Sqlite, SqlitePool};
 pub struct LauncherResource {
     pub id: i64,
     pub launcher_id: i64,
+    pub name: String,
     pub path: String,
 }
 
@@ -27,17 +28,31 @@ where
 }
 
 // 新增
-pub async fn create<'a, E>(executor: E, launcher_id: i64, path: &str) -> Result<i64>
+pub async fn create<'a, E>(executor: E, launcher_id: i64, name: &str, path: &str) -> Result<i64>
 where
     E: Executor<'a, Database = Sqlite>,
 {
-    let id = sqlx::query("INSERT INTO launcher_resource (launcher_id,path) VALUES (?,?)")
+    let id = sqlx::query("INSERT INTO launcher_resource (launcher_id,name,path) VALUES (?,?,?)")
         .bind(launcher_id)
+        .bind(name)
         .bind(path)
         .execute(executor)
         .await?
         .last_insert_rowid();
     Ok(id)
+}
+
+// 修改名称
+pub async fn modify_name<'a, E>(executor: E, resource_id: i64, name: &str) -> Result<()>
+where
+    E: Executor<'a, Database = Sqlite>,
+{
+    sqlx::query("UPDATE launcher_resource SET name = ? WHERE id = ?")
+        .bind(name)
+        .bind(resource_id)
+        .execute(executor)
+        .await?;
+    Ok(())
 }
 
 // 按launcher_id删除
@@ -94,6 +109,7 @@ where
 
 /// 重新创建 launcher_resource 表
 pub async fn recreate_table(pool: &SqlitePool) -> anyhow::Result<()> {
+    // TODO
     sqlx::query("DROP TABLE IF EXISTS launcher_resource")
         .execute(pool)
         .await?;
@@ -101,6 +117,7 @@ pub async fn recreate_table(pool: &SqlitePool) -> anyhow::Result<()> {
         r#"CREATE TABLE IF NOT EXISTS launcher_resource(
                 id          INTEGER PRIMARY KEY NOT NULL,
                 launcher_id INTEGER             NOT NULL,
+                name        VARCHAR             NOT NULL,
                 path        VARCHAR             NOT NULL)"#,
     )
     .execute(pool)

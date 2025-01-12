@@ -5,16 +5,18 @@ use sqlx::{sqlite::SqlitePoolOptions, SqlitePool};
 use std::env;
 use tauri::{AppHandle, Manager, State};
 use tauri_plugin_shell::ShellExt;
-
-pub mod error;
-
+use tracing::info;
 mod db;
-mod launcher_service;
+pub mod error;
+mod web;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
 fn greet(app: State<'_, AppState>, path: &str) -> Result<String, OneClickLaunchError> {
-    open_using_default_program(app, path)?;
+    match open_using_default_program(app, path) {
+        Ok(_) => {}
+        Err(e) => info!("打开启动器资源失败: {:?}", e),
+    }
 
     Ok(format!("Hello, {}! You've been greeted from Rust!", path))
 }
@@ -31,7 +33,7 @@ fn greet(app: State<'_, AppState>, path: &str) -> Result<String, OneClickLaunchE
 ///
 /// # 错误
 /// - 如果调用 Tauri 的 `shell().open` 方法失败，将返回 `OneClickLaunchError::ExecutionError`。
-fn open_using_default_program(
+pub fn open_using_default_program(
     app: State<'_, AppState>,
     path: &str,
 ) -> Result<(), OneClickLaunchError> {
@@ -59,7 +61,7 @@ pub struct DatabaseManager {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub async fn run() -> Result<()> {
     let url =
-        env::var("DATABASE_URL").unwrap_or_else(|_| "sqlite://./data/one_click_launch.db".into());
+        env::var("DATABASE_URL").unwrap_or_else(|_| "sqlite://../data/one_click_launch.db".into());
     // 创建连接池
     let pool = SqlitePoolOptions::new()
         .max_connections(5)
@@ -86,7 +88,17 @@ pub async fn run() -> Result<()> {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_persisted_scope::init())
-        .invoke_handler(tauri::generate_handler![greet, store_selected_path])
+        .invoke_handler(tauri::generate_handler![
+            greet,
+            store_selected_path,
+            web::craete_launcher,
+            web::copy_launcher,
+            web::delete,
+            web::modify_launcher_sort,
+            web::add_resource,
+            web::modify_resource_name,
+            web::delete_resource,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
     Ok(())

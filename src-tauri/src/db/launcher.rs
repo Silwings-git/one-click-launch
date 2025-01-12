@@ -65,7 +65,7 @@ where
 }
 
 /// 删除启动器
-pub async fn delete<'a, E>(executor: E, id: i64) -> Result<()>
+pub async fn delete_by_id<'a, E>(executor: E, id: i64) -> Result<()>
 where
     E: Executor<'a, Database = Sqlite>,
 {
@@ -89,7 +89,7 @@ where
 }
 
 /// 查询单个启动器信息
-pub async fn find<'a, E>(executor: E, id: i64) -> Result<Launcher>
+pub async fn find_by_id<'a, E>(executor: E, id: i64) -> Result<Launcher>
 where
     E: Executor<'a, Database = Sqlite>,
 {
@@ -103,6 +103,7 @@ where
 
 /// 重新创建 launcher 表
 pub async fn recreate_table(pool: &SqlitePool) -> Result<()> {
+    // TODO
     sqlx::query("DROP TABLE IF EXISTS launcher")
         .execute(pool)
         .await?;
