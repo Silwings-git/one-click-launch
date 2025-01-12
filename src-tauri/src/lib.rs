@@ -1,11 +1,15 @@
 use crate::error::OneClickLaunchError;
 use anyhow::Result;
+use db::{launcher, launcher_resource};
+use sqlx::{sqlite::SqlitePoolOptions, SqlitePool};
 use std::env;
 use tauri::{AppHandle, Manager, State};
 use tauri_plugin_shell::ShellExt;
+
 pub mod error;
 
 mod db;
+mod launcher_service;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -43,11 +47,31 @@ fn store_selected_path(path: String) -> Result<(), OneClickLaunchError> {
     println!("存储的路径: {}", path);
     Ok(())
 }
+
 pub struct AppState {
     app_handle: AppHandle,
 }
+
+pub struct DatabaseManager {
+    pub pool: SqlitePool,
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run() {
+pub async fn run() -> Result<()> {
+    let url =
+        env::var("DATABASE_URL").unwrap_or_else(|_| "sqlite://./data/one_click_launch.db".into());
+    // 创建连接池
+    let pool = SqlitePoolOptions::new()
+        .max_connections(5)
+        .connect(&url)
+        .await?;
+
+    launcher::initialize(&pool).await?;
+
+    launcher_resource::initialize(&pool).await?;
+
+    let db_manager: DatabaseManager = DatabaseManager { pool };
+
     tauri::Builder::default()
         .setup(|app| {
             // 将 app 存储到 State 中
@@ -58,10 +82,12 @@ pub fn run() {
             app.manage(app_state);
             Ok(())
         })
+        .manage(db_manager)
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_persisted_scope::init())
         .invoke_handler(tauri::generate_handler![greet, store_selected_path])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+    Ok(())
 }
