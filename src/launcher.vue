@@ -1,7 +1,22 @@
 <template>
     <div class="launcher">
         <div class="header">
-            <span class="name">启动器名称</span>
+            <!-- <span class="name">启动器名称</span> -->
+            <span
+                v-if="!isEditing"
+                class="name"
+                @dblclick="editLauncherName"
+                title="双击修改名称"
+            >
+                {{ launcherName }}
+            </span>
+            <input
+                v-if="isEditing"
+                v-model="newLauncherName"
+                class="name-input"
+                @blur="saveLauncherName"
+                @keyup.enter="saveLauncherName"
+            />
             <div class="button-container">
                 <button class="copy-button" @click="copyName">复制</button>
                 <button class="delete-launcher" @click="deleteLauncher">
@@ -15,7 +30,28 @@
         </div>
         <hr />
         <div class="content">
-            <div class="add-row" @click="addRow">+ 添加</div>
+            <!-- <div class="add-row" @click="addRow">+ 添加</div> -->
+            <div class="add-row">
+                <div class="add-left" @click="addRow">+ 添加</div>
+                <div class="add-folder-button" @click="addFolder">添加文件夹</div>
+                <div class="add-url-button" @click="showAddUrlDialog">添加网址</div>
+            </div>
+
+            <!-- 弹框部分 -->
+            <div v-if="showDialog" class="dialog-overlay">
+                <div class="dialog">
+                    <h3>添加网址</h3>
+                    <label for="url-name">名称:</label>
+                    <input type="text" id="url-name" v-model="newName" />
+                    <label for="url-content">网址:</label>
+                    <input type="text" id="url-content" v-model="newContent" />
+                    <div class="dialog-actions">
+                        <button @click="addUrl">确认</button>
+                        <button @click="closeDialog">取消</button>
+                    </div>
+                </div>
+            </div>
+
             <div class="data-row" v-for="(item, index) in data" :key="index" :title="item.fullContent"
                 @input="updateName(index, $event.target.value)" @blur="onNameEditComplete(index)">
                 <span class="data-text">
@@ -51,9 +87,33 @@ export default {
                 { name: "示例 8", content: "短内容", fullContent: "示例 2: 短内容" },
                 { name: "示例 9", content: "短内容", fullContent: "示例 2: 短内容" },
             ], // 初始数据
+            dropdownVisible: false, // 控制下拉菜单的显示
+            showDialog: false, // 控制网址弹框的显示
+            newName: "", // 新网址的名称
+            newContent: "", // 新网址的内容
+            editIndex: null, // 当前正在编辑的行索引
+            editName: "", // 临时存储编辑的名称
+            launcherName: "启动器名称", // 启动器名称
+            newLauncherName: "", // 临时存储的新启动器名称
+            isEditing: false, // 是否处于编辑模式
         };
     },
     methods: {
+        editLauncherName() {
+            this.isEditing = true; // 进入编辑模式
+            this.newLauncherName = this.launcherName; // 预填当前名称
+            this.$nextTick(() => {
+                // 自动聚焦到输入框
+                const input = this.$el.querySelector(".name-input");
+                input && input.focus();
+            });
+        },
+        saveLauncherName() {
+            if (this.newLauncherName.trim()) {
+                this.launcherName = this.newLauncherName.trim(); // 保存修改后的名称
+            }
+            this.isEditing = false; // 退出编辑模式
+        },
         addRow() {
             const newIndex = this.data.length + 1;
             const newItem = {
@@ -61,7 +121,7 @@ export default {
                 content: `这是新数据 ${newIndex} 的详细信息，鼠标悬浮可见完整内容`,
                 fullContent: `新数据 ${newIndex}: 这是新数据 ${newIndex} 的详细信息，鼠标悬浮可见完整内容`,
             };
-            this.data.push(newItem);
+            this.data.unshift(newItem);
         },
         async deleteRow(index) {
             this.data.splice(index, 1);
@@ -86,6 +146,30 @@ export default {
                 title: "启动通知", // 自定义弹窗标题
                 type: "error", // 可选值：info, warning, error
             });
+        },
+        addFolder() {
+            this.addRow(); // 与添加行相同的行为
+            this.dropdownVisible = false; // 关闭下拉菜单
+        },
+        showAddUrlDialog() {
+            this.showDialog = true; // 打开添加网址的对话框
+            this.dropdownVisible = false; // 关闭下拉菜单
+        },
+        async addUrl() {
+            if (this.newName && this.newContent) {
+                console.log(`添加了网址: ${this.newName} - ${this.newContent}`);
+                this.data.unshift({ name: this.newName, content: this.newContent });
+                this.newName = "";
+                this.newContent = "";
+                this.showDialog = false; // 关闭对话框
+            } else {
+                await message("请输入名称和网址！");
+            }
+        },
+        closeDialog() {
+            this.showDialog = false; // 关闭对话框
+            this.newName = "";
+            this.newContent = "";
         },
     },
 };
@@ -121,6 +205,7 @@ export default {
     padding: 5px 10px;
     border-radius: 4px;
     cursor: pointer;
+    width: 50px;
 }
 
 .copy-button:hover {
@@ -143,9 +228,16 @@ hr {
     color: #007bff;
     cursor: pointer;
     margin-bottom: 10px;
+    display: flex;
+    justify-content: start;
+    align-items: center;
+    gap: 20px;
+    /* 给按钮添加间距 */
 }
 
-.add-row:hover {
+.add-left:hover,
+.add-folder-button:hover,
+.add-url-button:hover {
     text-decoration: underline;
 }
 
@@ -233,4 +325,71 @@ hr {
     gap: 10px;
     /* 设置按钮之间的间距 */
 }
+
+.dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+
+.dialog {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    width: 300px;
+}
+
+.dialog h3 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.dialog label {
+    display: block;
+    margin-top: 10px;
+}
+
+.dialog input {
+    width: 100%;
+    padding: 5px;
+    margin-top: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.dialog-actions {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.dialog-actions button {
+    margin: 0 5px;
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+}
+
+.dialog-actions button:hover {
+    background-color: #007bff;
+    color: white;
+}
+
+.name-input {
+    font-size: 18px;
+    font-weight: bold;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 5px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
 </style>
