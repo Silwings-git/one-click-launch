@@ -16,11 +16,14 @@
         <hr />
         <div class="content">
             <div class="add-row" @click="addRow">+ 添加</div>
-            <div class="data-row" v-for="(item, index) in data" :key="index">
-                <input class="data-name" type="text" :value="item.name" @input="updateName(index, $event.target.value)"
-                    @blur="onNameEditComplete(index)" />
-                <span class="data-content">{{ item.content }}</span>
+            <div class="data-row" v-for="(item, index) in data" :key="index" :title="item.fullContent"
+                @input="updateName(index, $event.target.value)" @blur="onNameEditComplete(index)">
+                <span class="data-text">
+                    <strong>{{ item.name }}:</strong>
+                    {{ item.content }}
+                </span>
                 <button class="delete-button" @click="deleteRow(index)">
+                    <!-- <i class="fas fa-trash"></i> -->
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16"
                         height="16">
                         <path
@@ -84,13 +87,6 @@ export default {
                 title: "启动通知", // 自定义弹窗标题
                 type: "error", // 可选值：info, warning, error
             });
-        },
-        updateName(index, newName) {
-            this.data[index].name = newName;
-        },
-        onNameEditComplete(index) {
-            console.log(`行 ${index + 1} 的名称修改完成：${this.data[index].name}`);
-            // 调用你的自定义逻辑
         },
     },
 };
@@ -237,31 +233,5 @@ hr {
     display: flex;
     gap: 10px;
     /* 设置按钮之间的间距 */
-}
-
-
-.data-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 5px;
-    padding: 5px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-}
-
-.data-name {
-    width: 100px;
-    margin-right: 10px;
-    padding: 3px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
-
-.data-content {
-    flex: 1;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
 }
 </style>
