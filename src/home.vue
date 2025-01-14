@@ -4,29 +4,42 @@
       <button class="create-launcher-button" @click="createLauncher">创建启动器</button>
     </div>
     <div class="launcher-container">
-      <launcher v-for="index in 10" :key="index" :id="index" />
+      <launcher v-for="(item, index) in launchers" 
+      :key="index" 
+      :launcherData="item"
+      @launcher-deleted="refreshLaunchers"
+       />
     </div>
   </div>
 </template>
 
 <script>
 import Launcher from './Launcher.vue'; // 导入 Launcher 组件
-
+import {invoke} from "@tauri-apps/api/core";
 export default {
   components: {
     Launcher,
   },
   data() {
     return {
-      launchers: Array.from({ length: 10 }, (_, i) => i + 1), // 初始化 10 个启动器
+      launchers: [], // 用于存储从后端获取的启动器列表
     };
   },
   methods: {
-    createLauncher() {
-      // 创建一个新启动器，ID 为数组长度 + 1
-      const newId = this.launchers.length + 1;
-      this.launchers.push(newId);
+    async createLauncher() {
+      await invoke("craete_launcher");
+      this.refreshLaunchers();
     },
+    async refreshLaunchers() {
+      const data = await invoke("query_launchers"); // 调用 Tauri 后端命令
+      this.launchers = []; // 先清空数组
+      this.$nextTick(() => {
+        this.launchers = [...data]; // 再赋值
+      });
+    },
+  },
+  mounted() {
+      this.refreshLaunchers(); // 页面加载时刷新 Launcher 列表
   },
 };
 </script>

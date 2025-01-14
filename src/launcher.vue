@@ -3,7 +3,7 @@
         <div class="header">
             <!-- <span class="name">启动器名称</span> -->
             <span v-if="!isEditing" class="name" @dblclick="editLauncherName" title="双击修改名称">
-                {{ launcherName }}
+                {{ data.name }}
             </span>
             <input v-if="isEditing" v-model="newLauncherName" class="name-input" @blur="saveLauncherName"
                 @keyup.enter="saveLauncherName" />
@@ -42,11 +42,11 @@
                 </div>
             </div>
 
-            <div class="data-row" v-for="(item, index) in data" :key="index" :title="item.fullContent"
-                @input="updateName(index, $event.target.value)" @blur="onNameEditComplete(index)">
+            <div class="data-row" v-for="(item, index) in data.resources" :key="item.id" :title="item.fullContent"
+                @input="updateName(item.id, $event.target.value)" @blur="onNameEditComplete(item.id)">
                 <span class="data-text">
                     <strong>{{ item.name }}:</strong>
-                    {{ item.content }}
+                    {{ item.path }}
                 </span>
                 <button class="delete-button" @click="deleteRow(index)">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16"
@@ -63,27 +63,24 @@
 
 <script>
 import { confirm, message } from "@tauri-apps/plugin-dialog";
+import {invoke} from "@tauri-apps/api/core";
+
 export default {
+    props: {
+        launcherData: {
+            type: Object,
+            required: true, // 确保传入数据
+        },
+    },
     data() {
         return {
-            data: [
-                { name: "示例 1", content: "这是浮可见完整内容", fullContent: "示例 1: 这是示例数据，可能会很长，鼠标悬浮可见完整内容" },
-                { name: "示例 2", content: "短内容", fullContent: "示例 2: 短内容" },
-                { name: "示例 3", content: "短内容", fullContent: "示例 2: 短内容" },
-                { name: "示例 4", content: "短内容", fullContent: "示例 2: 短内容" },
-                { name: "示例 5", content: "短内容", fullContent: "示例 2: 短内容" },
-                { name: "示例 6", content: "短内容", fullContent: "示例 2: 短内容" },
-                { name: "示例 7", content: "短内容", fullContent: "示例 2: 短内容" },
-                { name: "示例 8", content: "短内容", fullContent: "示例 2: 短内容" },
-                { name: "示例 9", content: "短内容", fullContent: "示例 2: 短内容" },
-            ], // 初始数据
+            data: this.launcherData, // 初始化内容
             dropdownVisible: false, // 控制下拉菜单的显示
             showDialog: false, // 控制网址弹框的显示
             newName: "", // 新网址的名称
             newContent: "", // 新网址的内容
             editIndex: null, // 当前正在编辑的行索引
             editName: "", // 临时存储编辑的名称
-            launcherName: "启动器名称", // 启动器名称
             newLauncherName: "", // 临时存储的新启动器名称
             isEditing: false, // 是否处于编辑模式
         };
@@ -122,7 +119,8 @@ export default {
                 { title: "确认删除", type: "question" }
             );
             if (userConfirmed) {
-                console.log("???");
+                 await invoke("delete_launcher",{"launcherId":this.data.id});
+                 this.$emit("launcher-deleted", this.data.id); // 通知父组件
             }
         },
         copyName() {
@@ -385,7 +383,7 @@ hr {
     box-sizing: border-box;
 }
 
-.move-launcher {
+.mo-launcher {
     font-size: 18px;
 }
 </style>

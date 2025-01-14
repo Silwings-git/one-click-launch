@@ -33,4 +33,4 @@ url = "2.5.4"
 sqlx = { version = "0.5", features = ["runtime-tokio-rustls", "sqlite"] }
 chrono = "0.4.39"
 tokio = { version = "1.43.0", features = ["full"] }
-
+rand = "0.8.5"

@@ -1,4 +1,5 @@
 use anyhow::Result;
+use rand::{distributions::Alphanumeric, seq::index::sample, Rng};
 use tauri::State;
 use tracing::info;
 
@@ -12,10 +13,26 @@ use crate::{
 #[tauri::command]
 pub async fn craete_launcher(
     db: State<'_, DatabaseManager>,
-    name: &str,
+    name: Option<String>,
 ) -> Result<i64, OneClickLaunchError> {
-    let launcher_id = launcher::create(&db.pool, name).await?;
+    let name = name.unwrap_or_else(generate_default_launcher_name);
+    let launcher_id = launcher::create(&db.pool, &name).await?;
     Ok(launcher_id)
+}
+
+fn generate_default_launcher_name()->String{
+    let mut name = "双击编辑".to_string();
+    let rad_str = generate_random_string(4);
+    name.push_str(&rad_str);
+    name
+}
+
+fn generate_random_string(length: usize) -> String {
+    rand::thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(length)
+        .map(char::from)
+        .collect()
 }
 
 /// 复制启动器,包含启动器关联的资源数据
@@ -43,9 +60,57 @@ pub async fn copy_launcher(
     Ok(new_launcher_id)
 }
 
+/// 查询启动器列表
+#[tauri::command]
+pub async fn query_launchers(
+    db: State<'_, DatabaseManager>,
+) -> Result<Vec<LauncherVo>, OneClickLaunchError> {
+    let launchers = launcher::query(&db.pool).await?;
+
+    let resources = launcher_resource::query_all(&db.pool).await?;
+
+    let launcher_vos = launchers
+        .into_iter()
+        .map(|launcher| {
+            let res_vos = resources
+                .iter()
+                .filter(|resource| resource.launcher_id == launcher.id)
+                .map(|resource| LauncherResourceVo {
+                    id: resource.id,
+                    launcher_id: resource.launcher_id,
+                    name: resource.name.clone(),
+                    path: resource.path.clone(),
+                })
+                .collect();
+            LauncherVo {
+                id: launcher.id,
+                name: launcher.name,
+                resources: res_vos,
+            }
+        })
+        .collect();
+
+    Ok(launcher_vos)
+}
+
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
+pub struct LauncherVo {
+    pub id: i64,
+    pub name: String,
+    pub resources: Vec<LauncherResourceVo>,
+}
+
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
+pub struct LauncherResourceVo {
+    pub id: i64,
+    pub launcher_id: i64,
+    pub name: String,
+    pub path: String,
+}
+
 /// 删除启动器
 #[tauri::command]
-pub async fn delete(
+pub async fn delete_launcher(
     db: State<'_, DatabaseManager>,
     launcher_id: i64,
 ) -> Result<(), OneClickLaunchError> {

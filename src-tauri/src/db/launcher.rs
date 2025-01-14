@@ -18,7 +18,7 @@ where
         r#"CREATE TABLE IF NOT EXISTS launcher(
                 id          INTEGER PRIMARY KEY NOT NULL,
                 name        VARCHAR             NOT NULL,
-                sort        INTEGER             NOT NULL)"#,
+                sort        INTEGER             NOT NULL DEFAULT 1)"#,
     )
     .execute(executor)
     .await?;
@@ -82,7 +82,7 @@ where
     E: Executor<'a, Database = Sqlite>,
 {
     let launchers: Vec<Launcher> =
-        sqlx::query_as("SELECT id,name,sort FROM launcher ORDER sort ASC, id DESC")
+        sqlx::query_as("SELECT id,name,sort FROM launcher ORDER BY sort ASC, id DESC")
             .fetch_all(executor)
             .await?;
     Ok(launchers)
