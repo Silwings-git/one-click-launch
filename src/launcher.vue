@@ -2,21 +2,11 @@
     <div class="launcher">
         <div class="header">
             <!-- <span class="name">启动器名称</span> -->
-            <span
-                v-if="!isEditing"
-                class="name"
-                @dblclick="editLauncherName"
-                title="双击修改名称"
-            >
+            <span v-if="!isEditing" class="name" @dblclick="editLauncherName" title="双击修改名称">
                 {{ launcherName }}
             </span>
-            <input
-                v-if="isEditing"
-                v-model="newLauncherName"
-                class="name-input"
-                @blur="saveLauncherName"
-                @keyup.enter="saveLauncherName"
-            />
+            <input v-if="isEditing" v-model="newLauncherName" class="name-input" @blur="saveLauncherName"
+                @keyup.enter="saveLauncherName" />
             <div class="button-container">
                 <button class="copy-button" @click="copyName">复制</button>
                 <button class="delete-launcher" @click="deleteLauncher">
@@ -29,14 +19,14 @@
             </div>
         </div>
         <hr />
+        <div class="add-row">
+            <div class="add-left" @click="addRow">+ 添加</div>
+            <div class="add-folder-button" @click="addFolder">添加文件夹</div>
+            <div class="add-url-button" @click="showAddUrlDialog">添加网址</div>
+            <div class="move-left" @click="moveLauncher(0)"><</div>
+            <div class="move-right" @click="moveLauncher(1)">></div>
+        </div>
         <div class="content">
-            <!-- <div class="add-row" @click="addRow">+ 添加</div> -->
-            <div class="add-row">
-                <div class="add-left" @click="addRow">+ 添加</div>
-                <div class="add-folder-button" @click="addFolder">添加文件夹</div>
-                <div class="add-url-button" @click="showAddUrlDialog">添加网址</div>
-            </div>
-
             <!-- 弹框部分 -->
             <div v-if="showDialog" class="dialog-overlay">
                 <div class="dialog">
@@ -171,6 +161,9 @@ export default {
             this.newName = "";
             this.newContent = "";
         },
+        moveLauncher(type){
+            console.log("type: ",type);
+        }
     },
 };
 </script>
@@ -224,7 +217,7 @@ hr {
 }
 
 .add-row {
-    font-size: 16px;
+    font-size: 14px;
     color: #007bff;
     cursor: pointer;
     margin-bottom: 10px;
@@ -259,7 +252,7 @@ hr {
 .delete-launcher {
     background-color: transparent;
     /* 无背景色 */
-    color: #007bff;
+    color: #BFBFBF;
     /* 默认蓝色 */
     border: none;
     width: 30px;
@@ -391,5 +384,4 @@ hr {
     width: 100%;
     box-sizing: border-box;
 }
-
 </style>
