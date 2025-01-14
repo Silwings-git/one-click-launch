@@ -20,11 +20,11 @@
         </div>
         <hr />
         <div class="add-row">
-            <div class="move-left" @click="moveLauncher(0)"><</div>
+            <div class="move-launcher" @click="moveLauncher(0)"><</div>
             <div class="add-left" @click="addRow">+ 添加</div>
             <div class="add-folder-button" @click="addFolder">添加文件夹</div>
             <div class="add-url-button" @click="showAddUrlDialog">添加网址</div>
-            <div class="move-right" @click="moveLauncher(1)">></div>
+            <div class="move-launcher" @click="moveLauncher(1)">></div>
         </div>
         <div class="content">
             <!-- 弹框部分 -->
@@ -67,7 +67,7 @@ export default {
     data() {
         return {
             data: [
-                { name: "示例 1", content: "这是浮可见完整内容", fullContent: "示例 1: 这是示例数据，可能会很长，鼠标悬浮可见完整内容 这是示例数据，可能会很长，鼠标悬浮可见完整内容 这是示例数据，可能会很长，鼠标悬浮可见完整内容 这是示例数据，可能会很长，鼠标悬浮可见完整内容 这是示例数据，可能会很长，鼠标悬浮可见完整内容 这是示例数据，可能会很长，鼠标悬浮可见完整内容 这是示例数据，可能会很长，鼠标悬浮可见完整内容 这是示例数据，可能会很长，鼠标悬浮可见完整内容 这是示例数据，可能会很长，鼠标悬浮可见完整内容 这是示例数据，可能会很长，鼠标悬浮可见完整内容 这是示例数据，可能会很长，鼠标悬浮可见完整内容 这是示例数据，可能会很长，鼠标悬浮可见完整内容" },
+                { name: "示例 1", content: "这是浮可见完整内容", fullContent: "示例 1: 这是示例数据，可能会很长，鼠标悬浮可见完整内容" },
                 { name: "示例 2", content: "短内容", fullContent: "示例 2: 短内容" },
                 { name: "示例 3", content: "短内容", fullContent: "示例 2: 短内容" },
                 { name: "示例 4", content: "短内容", fullContent: "示例 2: 短内容" },
@@ -385,8 +385,7 @@ hr {
     box-sizing: border-box;
 }
 
-.move-left,
-.move-right {
+.move-launcher {
     font-size: 18px;
 }
 </style>
