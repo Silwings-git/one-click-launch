@@ -7,7 +7,8 @@
       <launcher v-for="(item, index) in launchers" 
       :key="index" 
       :launcherData="item"
-      @launcher-deleted="refreshLaunchers"
+      @launcher-updated="refreshLaunchers"
+      @launcher-moved="moveLauncher"
        />
     </div>
   </div>
@@ -37,6 +38,34 @@ export default {
         this.launchers = [...data]; // 再赋值
       });
     },
+    // type 0->左移,1-右移
+    async moveLauncher(launcherId, type) {
+      // 找到目标元素的索引
+      const ids = this.launchers.map(launcher => launcher.id);
+      const index = ids.findIndex(id => id === launcherId);
+
+      // 如果未找到目标元素，直接返回原数组副本
+      if (index === -1) {
+        return;
+      }
+
+      if (type === 0 && index > 0) {
+        // 向左移动（交换与左边的元素）
+        [ids[index], ids[index - 1]] = [ids[index - 1], ids[index]];
+      } else if (type === 1 && index < ids.length - 1) {
+        // 向右移动（交换与右边的元素）
+        [ids[index], ids[index + 1]] = [ids[index + 1], ids[index]];
+      }
+
+      const sortList = ids.map((id, index) => ({
+        id: id,
+        sort: index
+      }));
+
+      await invoke("modify_launcher_sort", {launchers: sortList});
+
+      this.refreshLaunchers();
+    }
   },
   mounted() {
       this.refreshLaunchers(); // 页面加载时刷新 Launcher 列表

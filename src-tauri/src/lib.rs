@@ -92,6 +92,7 @@ pub async fn run() -> Result<()> {
             greet,
             store_selected_path,
             web::craete_launcher,
+            web::modify_launcher_name,
             web::copy_launcher,
             web::delete_launcher,
             web::modify_launcher_sort,
@@ -99,6 +100,7 @@ pub async fn run() -> Result<()> {
             web::modify_resource_name,
             web::delete_resource,
             web::query_launchers,
+            web::launch,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -26,12 +26,13 @@ where
 }
 
 /// 存储一个新的启动器
-pub async fn create<'a, E>(executor: E, launcher_name: &str) -> Result<i64>
+pub async fn create<'a, E>(executor: E, launcher_name: &str, sort: Option<i32>) -> Result<i64>
 where
     E: Executor<'a, Database = Sqlite>,
 {
-    let id = sqlx::query("INSERT INTO launcher (name) VALUES (?)")
+    let id = sqlx::query("INSERT INTO launcher (name,sort) VALUES (?,?)")
         .bind(launcher_name)
+        .bind(sort)
         .execute(executor)
         .await?
         .last_insert_rowid();

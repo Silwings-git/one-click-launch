@@ -19,6 +19,7 @@ where
         r#"CREATE TABLE IF NOT EXISTS launcher_resource(
             id          INTEGER PRIMARY KEY NOT NULL,
             launcher_id INTEGER             NOT NULL,
+            name        VARCHAR             NOT NULL,
             path        VARCHAR             NOT NULL);
             CREATE INDEX IF NOT EXISTS idx_launcherresource_launcherid ON launcher_resource(launcher_id);"#,
     )
@@ -88,7 +89,7 @@ where
     E: Executor<'a, Database = Sqlite>,
 {
     let resources =
-        sqlx::query_as("SELECT id,launcher_id,path FROM launcher_resource WHERE launcher_id=?")
+        sqlx::query_as("SELECT id,launcher_id,name,path FROM launcher_resource WHERE launcher_id=?")
             .bind(launcher_id)
             .fetch_all(executor)
             .await?;
@@ -101,7 +102,7 @@ where
     E: Executor<'a, Database = Sqlite>,
 {
     let resources =
-        sqlx::query_as("SELECT id,launcher_id,path FROM launcher_resource ORDER BY id DESC")
+        sqlx::query_as("SELECT id,launcher_id,name,path FROM launcher_resource ORDER BY id DESC")
             .fetch_all(executor)
             .await?;
     Ok(resources)

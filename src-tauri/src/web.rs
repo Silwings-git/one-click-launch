@@ -16,11 +16,11 @@ pub async fn craete_launcher(
     name: Option<String>,
 ) -> Result<i64, OneClickLaunchError> {
     let name = name.unwrap_or_else(generate_default_launcher_name);
-    let launcher_id = launcher::create(&db.pool, &name).await?;
+    let launcher_id = launcher::create(&db.pool, &name, None).await?;
     Ok(launcher_id)
 }
 
-fn generate_default_launcher_name()->String{
+fn generate_default_launcher_name() -> String {
     let mut name = "双击编辑".to_string();
     let rad_str = generate_random_string(4);
     name.push_str(&rad_str);
@@ -33,6 +33,17 @@ fn generate_random_string(length: usize) -> String {
         .take(length)
         .map(char::from)
         .collect()
+}
+
+/// 创建新的启动器
+#[tauri::command]
+pub async fn modify_launcher_name(
+    db: State<'_, DatabaseManager>,
+    launcher_id: i64,
+    name: String,
+) -> Result<(), OneClickLaunchError> {
+    launcher::modify_launcher_name(&db.pool, launcher_id, &name).await?;
+    Ok(())
 }
 
 /// 复制启动器,包含启动器关联的资源数据
@@ -48,8 +59,10 @@ pub async fn copy_launcher(
 
     let launcher_resoures = launcher_resource::query_by_launcher_id(&mut tx, launcher_id).await?;
 
+    let mut new_name = format!("{}-副本", launcher.name);
+
     // 2. 复制资源
-    let new_launcher_id = launcher::create(&mut tx, &launcher.name).await?;
+    let new_launcher_id = launcher::create(&mut tx, &new_name, Some(launcher.sort)).await?;
 
     for res in launcher_resoures.iter() {
         launcher_resource::create(&mut tx, new_launcher_id, &res.name, &res.path).await?;
@@ -157,9 +170,10 @@ pub async fn modify_launcher_sort(
 pub async fn add_resource(
     db: State<'_, DatabaseManager>,
     launcher_id: i64,
+    name: Option<String>,
     path: &str,
 ) -> Result<i64, OneClickLaunchError> {
-    let name = generate_name(path);
+    let name = name.unwrap_or_else(|| generate_name(path));
 
     let resource_id = launcher_resource::create(&db.pool, launcher_id, &name, path).await?;
 
