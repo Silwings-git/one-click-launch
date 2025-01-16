@@ -41,10 +41,14 @@
                 </div>
             </div>
 
-            <div class="data-row" v-for="(item, index) in data.resources" :key="item.id" :title="item.path"
-                @input="updateName(item.id, $event.target.value)" @blur="onNameEditComplete(item.id)">
+            <div class="data-row" v-for="(item, index) in data.resources" :key="item.id" :title="item.path">
                 <span class="data-text">
-                    <strong>{{ item.name }}:</strong>
+                    <!-- <strong>{{ item.name }}:</strong> -->
+                    <span v-if="!isEditingResourceName" @dblclick="editResourceName(item)" title="双击修改名称">
+                        <strong>{{ item.name }}:</strong>
+                    </span>
+                    <input v-if="isEditingResourceName" v-model="newResourceName" class="name-input" @blur="saveResourceName(item.id)"
+                        @keyup.enter="saveResourceName(item.id)" />
                     <span>{{ item.path }}</span>
                 </span>
                 <button class="delete-button" @click="deleteRow(item.id)">
@@ -56,13 +60,43 @@
                 </button>
             </div>
         </div>
-        <button class="launch-button" @click="launch">启动</button>
+        <!-- <button class="launch-button" @click="launch">启动</button> -->
+        <button 
+            class="launch-button" 
+            :disabled="isLaunching" 
+            @click="launch">
+            <span v-if="!isLaunching">启动</span>
+            <span v-else>
+                <svg 
+                    class="loading-icon" 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    stroke-width="2" 
+                    stroke-linecap="round" 
+                    stroke-linejoin="round" 
+                    width="18" 
+                    height="18">
+                    <circle cx="12" cy="12" r="10" stroke-dasharray="80" stroke-dashoffset="60">
+                        <animateTransform
+                            attributeName="transform"
+                            type="rotate"
+                            from="0 12 12"
+                            to="360 12 12"
+                            dur="1s"
+                            repeatCount="indefinite" />
+                    </circle>
+                </svg>
+                启动中...
+            </span>
+        </button>
     </div>
 </template>
 
 <script>
 import { confirm, message ,open} from "@tauri-apps/plugin-dialog";
-import {invoke} from "@tauri-apps/api/core";
+import {invoke} from "@tauri-apps/api/core";        
 import { useToast } from "vue-toastification";
 
 const toast = useToast()
@@ -82,7 +116,10 @@ export default {
             newLauncherName: "", // 临时存储的新启动器名称
             isEditing: false, // 是否处于编辑模式
             addUrlName:"",
-            addUrlContent:""
+            addUrlContent:"",
+            isLaunching: false, // 是否正在启动
+            isEditingResourceName: false,
+            newResourceName: "",
         };
     },
     created() {
@@ -105,6 +142,23 @@ export default {
             }
             await invoke("modify_launcher_name", { launcherId: this.data.id, name: this.launcherName });
             this.isEditing = false; // 退出编辑模式
+            this.$emit("launcher-updated", this.data.id);
+        },
+        editResourceName(item) {
+            this.isEditingResourceName = true; // 进入编辑模式
+            this.newResourceName = item.name; // 预填当前名称
+            this.$nextTick(() => {
+                // 自动聚焦到输入框
+                const input = this.$el.querySelector(".name-input");
+                input && input.focus();
+            });
+        },
+        async saveResourceName(resourceId) {
+            if (this.newResourceName.trim()) {
+                this.newResourceName = this.newResourceName.trim(); // 保存修改后的名称
+            }
+            await invoke("modify_resource_name", { resourceId: resourceId, name: this.newResourceName });
+            this.isEditingResourceName = false; // 退出编辑模式
             this.$emit("launcher-updated", this.data.id);
         },
         async addRow(directory) {
@@ -142,9 +196,10 @@ export default {
             this.$emit("launcher-updated", this.data.id);
         },
         async launch() {
-            toast.info("正在启动...");
+            this.isLaunching = true;
             await invoke("launch", { launcherId: this.data.id });
             toast.success("启动成功！所有内容已激活！");
+            this.isLaunching = false;
         },
         showAddUrlDialog() {
             this.showDialog = true; // 打开添加网址的对话框
