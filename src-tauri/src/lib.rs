@@ -124,7 +124,13 @@ pub async fn run() -> Result<()> {
         .manage(db_manager)
         // 优先注册单例插件
         .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
-            println!("{}, {argv:?}, {cwd}", app.package_info().name);
+            info!("{}, {argv:?}, {cwd}", app.package_info().name);
+            let windows = app.get_webview_window("main").unwrap();
+            if windows.is_visible().unwrap() {
+                let _ = windows.unmaximize();
+            }
+            let _ = windows.show();
+            let _ = windows.set_focus();
             app.emit("single-instance", Payload { args: argv, cwd })
                 .unwrap();
         }))

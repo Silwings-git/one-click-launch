@@ -21,7 +21,7 @@
         "maxWidth": 800,
         "maxHeight": 600,
         "maximizable":false,
-        "devtools": true
+        "devtools": false
       }
     ],
     "security": {
