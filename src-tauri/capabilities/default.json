@@ -9,6 +9,9 @@
     "dialog:allow-open",
     "dialog:allow-message",
     "dialog:allow-confirm",
-    "core:window:allow-is-resizable"
+    "core:window:allow-is-resizable",
+    "autostart:allow-enable",
+    "autostart:allow-disable",
+    "autostart:allow-is-enabled"
   ]
 }

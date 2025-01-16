@@ -1,5 +1,5 @@
-use anyhow::{Ok, Result};
-use sqlx::{Executor, Sqlite, SqlitePool};
+use anyhow::Result;
+use sqlx::{Executor, Sqlite};
 
 /// 使用 FromRow 派生宏把从数据库中读取出来的数据转换成 Launcher 结构
 #[allow(dead_code)]

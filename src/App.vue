@@ -4,7 +4,6 @@
 
 <script>
 import { defineComponent } from "vue";
-import Demo from "./demo.vue";
 import Launcher from "./launcher.vue";
 import Home from "./home.vue";
 

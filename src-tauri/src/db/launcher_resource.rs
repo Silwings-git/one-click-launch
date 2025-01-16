@@ -1,5 +1,5 @@
 use anyhow::Result;
-use sqlx::{Executor, Sqlite, SqlitePool};
+use sqlx::{Executor, Sqlite};
 
 /// 使用FromRow宏把数据库中读取出来的数据转换成LauncherResource结构
 #[allow(dead_code)]
@@ -61,7 +61,7 @@ pub async fn delete_by_launcher<'a, E>(executor: E, launcher_id: i64) -> Result<
 where
     E: Executor<'a, Database = Sqlite>,
 {
-    sqlx::query("DELETE FROM launcher_resource WHERE launcher_id=?")
+    sqlx::query("DELETE FROM launcher_resource WHERE launcher_id = ?")
         .bind(launcher_id)
         .execute(executor)
         .await?;
@@ -106,22 +106,4 @@ where
             .fetch_all(executor)
             .await?;
     Ok(resources)
-}
-
-/// 重新创建 launcher_resource 表
-pub async fn recreate_table(pool: &SqlitePool) -> anyhow::Result<()> {
-    // TODO
-    sqlx::query("DROP TABLE IF EXISTS launcher_resource")
-        .execute(pool)
-        .await?;
-    sqlx::query(
-        r#"CREATE TABLE IF NOT EXISTS launcher_resource(
-                id          INTEGER PRIMARY KEY NOT NULL,
-                launcher_id INTEGER             NOT NULL,
-                name        VARCHAR             NOT NULL,
-                path        VARCHAR             NOT NULL)"#,
-    )
-    .execute(pool)
-    .await?;
-    Ok(())
 }

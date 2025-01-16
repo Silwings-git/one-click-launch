@@ -2,7 +2,17 @@
   <div class="home">
     <div class="topbar">
       <button class="create-launcher-button" @click="createLauncher">创建启动器</button>
-    </div>
+      <div class="auto-start-container">
+        <label class="checkbox-label">
+        <input
+          type="checkbox"
+          v-model="autoLaunch"
+          @change="toggleAutoLaunch"
+        />
+        开机启动
+      </label>
+  </div>
+  </div>
     <div class="launcher-container">
       <launcher v-for="(item, index) in launchers" 
       :key="index" 
@@ -17,6 +27,7 @@
 <script>
 import Launcher from './Launcher.vue'; // 导入 Launcher 组件
 import {invoke} from "@tauri-apps/api/core";
+import { enable, isEnabled, disable } from '@tauri-apps/plugin-autostart';
 export default {
   components: {
     Launcher,
@@ -24,6 +35,7 @@ export default {
   data() {
     return {
       launchers: [], // 用于存储从后端获取的启动器列表
+      autoLaunch: false,
     };
   },
   methods: {
@@ -65,9 +77,27 @@ export default {
       await invoke("modify_launcher_sort", {launchers: sortList});
 
       this.refreshLaunchers();
-    }
+    },
+    // 切换开机启动状态
+    async toggleAutoLaunch() {
+      if(await isEnabled()){
+        await disable()
+      }else{
+        await enable()
+      }
+    },
+    // 获取当前开机启动状态
+    async fetchAutoLaunchStatus() {
+      try {
+        this.autoLaunch = await isEnabled();
+      } catch (error) {
+        console.error("Failed to fetch auto launch status:", error);
+      }
+    },
   },
   mounted() {
+    // 初始化时获取开机启动状态
+      this.fetchAutoLaunchStatus();
       this.refreshLaunchers(); // 页面加载时刷新 Launcher 列表
   },
 };
@@ -132,7 +162,8 @@ export default {
   /* 分隔线 */
   display: flex;
   align-items: center;
-  justify-content: start;
+  /* justify-content: start; */
+  justify-content: space-between;
   /* 左对齐按钮 */
   padding: 0 10px;
   /* 内边距 */
@@ -161,5 +192,26 @@ export default {
 .create-launcher-button:active {
   background-color: #003d80;
   /* 鼠标按下背景色 */
+}
+
+.auto-start-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-family: Arial, sans-serif;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+input[type="checkbox"] {
+  margin-right: 10px;
+  transform: scale(1.2); /* 放大复选框大小 */
+  cursor: pointer;
 }
 </style>

@@ -3,8 +3,13 @@ use anyhow::Result;
 use db::{launcher, launcher_resource};
 use sqlx::{sqlite::SqlitePoolOptions, SqlitePool};
 use std::{env, fs};
-use tauri::{AppHandle, Manager, State};
-use tauri_plugin_shell::ShellExt;
+use tauri::{
+    menu::{Menu, MenuItem},
+    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
+    AppHandle, Manager, State,
+};
+use tauri_plugin_autostart::MacosLauncher;
+use tauri_plugin_opener::OpenerExt;
 use tracing::info;
 mod db;
 pub mod error;
@@ -38,8 +43,8 @@ pub fn open_using_default_program(
     path: &str,
 ) -> Result<(), OneClickLaunchError> {
     app.app_handle
-        .shell()
-        .open(path, None)
+        .opener()
+        .open_path(path, None::<&str>)
         .map_err(|e| OneClickLaunchError::ExecutionError(e.to_string()))?;
     Ok(())
 }
@@ -60,8 +65,7 @@ pub struct DatabaseManager {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub async fn run() -> Result<()> {
-    let db_path = std::env::current_exe()
-        .unwrap()
+    let db_path = env::current_exe()?
         .parent()
         .map(|dir| dir.join("data").join("one_click_launch.db"))
         .unwrap();
@@ -81,8 +85,6 @@ pub async fn run() -> Result<()> {
         println!("Database file created at {:?}", db_path);
     }
 
-    // let url =
-    //     env::var("DATABASE_URL").unwrap_or_else(|_| "sqlite://../data/one_click_launch.db".into());
     // 创建连接池
     let pool = SqlitePoolOptions::new()
         .max_connections(5)
@@ -105,11 +107,60 @@ pub async fn run() -> Result<()> {
             app.manage(app_state);
             Ok(())
         })
+        .setup(|app| {
+            let quit_i = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
+            let menu = Menu::with_items(app, &[&quit_i])?;
+
+            let _tray = TrayIconBuilder::new()
+                .menu(&menu)
+                .menu_on_left_click(false)
+                .icon(app.default_window_icon().unwrap().clone())
+                .on_tray_icon_event(|tray, event| match event {
+                    TrayIconEvent::Click {
+                        button: MouseButton::Left,
+                        button_state: MouseButtonState::Up,
+                        ..
+                    } => {
+                        let app = tray.app_handle();
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.unminimize();
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    }
+                    _ => {
+                        println!("unhandled event {event:?}");
+                    }
+                })
+                .on_menu_event(|app, event| match event.id.as_ref() {
+                    "quit" => {
+                        info!("quit menu item was clicked");
+                        app.exit(0);
+                    }
+                    _ => {
+                        tracing::error!("menu item {:?} not handled", event.id);
+                    }
+                })
+                .build(app)?;
+            Ok(())
+        })
+        .on_window_event(|window, event| match event {
+            tauri::WindowEvent::CloseRequested { api, .. } => {
+                api.prevent_close();
+                let _ = window.hide();
+            }
+            _ => {}
+        })
         .manage(db_manager)
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_persisted_scope::init())
         .plugin(tauri_plugin_os::init())
+        .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_autostart::init(
+            MacosLauncher::LaunchAgent,
+            Some(vec!["--flag1", "--flag2"]),
+        ))
         .invoke_handler(tauri::generate_handler![
             greet,
             store_selected_path,

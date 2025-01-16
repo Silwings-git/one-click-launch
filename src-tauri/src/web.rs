@@ -1,5 +1,5 @@
 use anyhow::Result;
-use rand::{distributions::Alphanumeric, seq::index::sample, Rng};
+use rand::{distributions::Alphanumeric, Rng};
 use tauri::State;
 use tracing::info;
 
@@ -131,12 +131,8 @@ pub async fn delete_launcher(
 
     launcher::delete_by_id(&mut tx, launcher_id).await?;
 
-    let resources = launcher_resource::query_by_launcher_id(&mut tx, launcher_id).await?;
-
-    for res in resources.iter() {
-        launcher_resource::delete_by_id(&mut tx, res.id).await?;
-    }
-
+    launcher_resource::delete_by_launcher(&mut tx, launcher_id).await?;
+    
     tx.commit().await?;
 
     Ok(())
