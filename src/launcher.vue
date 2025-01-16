@@ -44,11 +44,11 @@
             <div class="data-row" v-for="(item, index) in data.resources" :key="item.id" :title="item.path">
                 <span class="data-text">
                     <!-- <strong>{{ item.name }}:</strong> -->
-                    <span v-if="!isEditingResourceName" @dblclick="editResourceName(item)" title="双击修改名称">
+                    <span v-if="!editingResourceState.get(item.id)" @dblclick="editResourceName(item)" title="双击修改名称">
                         <strong>{{ item.name }}:</strong>
                     </span>
-                    <input v-if="isEditingResourceName" v-model="newResourceName" class="name-input" @blur="saveResourceName(item.id)"
-                        @keyup.enter="saveResourceName(item.id)" />
+                    <input v-if="editingResourceState.get(item.id)" v-model="newResourceName" class="name-input" @blur="saveResourceName(item)"
+                        @keyup.enter="saveResourceName(item)" />
                     <span>{{ item.path }}</span>
                 </span>
                 <button class="delete-button" @click="deleteRow(item.id)">
@@ -98,6 +98,7 @@
 import { confirm, message ,open} from "@tauri-apps/plugin-dialog";
 import {invoke} from "@tauri-apps/api/core";        
 import { useToast } from "vue-toastification";
+import { platform } from '@tauri-apps/plugin-os'
 
 const toast = useToast()
 
@@ -118,7 +119,7 @@ export default {
             addUrlName:"",
             addUrlContent:"",
             isLaunching: false, // 是否正在启动
-            isEditingResourceName: false,
+            editingResourceState: new Map(),
             newResourceName: "",
         };
     },
@@ -145,7 +146,7 @@ export default {
             this.$emit("launcher-updated", this.data.id);
         },
         editResourceName(item) {
-            this.isEditingResourceName = true; // 进入编辑模式
+            this.editingResourceState.set(item.id,true); // 进入编辑模式
             this.newResourceName = item.name; // 预填当前名称
             this.$nextTick(() => {
                 // 自动聚焦到输入框
@@ -153,19 +154,37 @@ export default {
                 input && input.focus();
             });
         },
-        async saveResourceName(resourceId) {
+        async saveResourceName(item) {
             if (this.newResourceName.trim()) {
-                this.newResourceName = this.newResourceName.trim(); // 保存修改后的名称
+                const trimName = this.newResourceName.trim();
+                if(item.name === trimName){
+                    this.editingResourceState.set(item.id,false); // 退出编辑模式
+                    return;
+                }
+                this.newResourceName = trimName; // 保存修改后的名称
             }
-            await invoke("modify_resource_name", { resourceId: resourceId, name: this.newResourceName });
-            this.isEditingResourceName = false; // 退出编辑模式
+            await invoke("modify_resource_name", { resourceId: item.id, name: this.newResourceName });
+            this.editingResourceState.set(item.id,false); // 退出编辑模式
             this.$emit("launcher-updated", this.data.id);
         },
         async addRow(directory) {
             try {
+
+                let defaultPath = ""; // 默认不设置路径
+                
+                if (!directory){
+                    // 检测操作系统
+                    const currentPlatform = await platform();
+                    if (currentPlatform === "windows") {
+                        // 只有在 Windows 系统时设置预定义路径
+                        defaultPath = "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs"; // 替换为你的预定义路径
+                    }
+                }
+
                 const filePath = await open({
                     multiple: false, // 禁止多选
                     directory: directory, // 选择文件而不是文件夹
+                    defaultPath: defaultPath, // 动态设置默认路径
                 });
 
                 if (filePath) {
@@ -197,9 +216,15 @@ export default {
         },
         async launch() {
             this.isLaunching = true;
-            await invoke("launch", { launcherId: this.data.id });
-            toast.success("启动成功！所有内容已激活！");
-            this.isLaunching = false;
+            try{
+                await invoke("launch", { launcherId: this.data.id });
+                toast.success("启动成功！所有内容已激活！");
+            }catch (error) {
+                console.error("启动失败:", error);
+                toast.error("启动失败！");
+            } finally {
+                this.isLaunching = false; // 恢复按钮状态
+            }
         },
         showAddUrlDialog() {
             this.showDialog = true; // 打开添加网址的对话框

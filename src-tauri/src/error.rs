@@ -12,6 +12,9 @@ pub enum OneClickLaunchError {
 
     #[error("{0}")]
     AnyhowError(#[from] anyhow::Error),
+
+    #[error("{0}")]
+    InfoError(#[from] std::io::Error),
 }
 
 // we must manually implement serde::Serialize

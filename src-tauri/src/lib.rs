@@ -2,7 +2,7 @@ use crate::error::OneClickLaunchError;
 use anyhow::Result;
 use db::{launcher, launcher_resource};
 use sqlx::{sqlite::SqlitePoolOptions, SqlitePool};
-use std::env;
+use std::{env, fs};
 use tauri::{AppHandle, Manager, State};
 use tauri_plugin_shell::ShellExt;
 use tracing::info;
@@ -60,12 +60,33 @@ pub struct DatabaseManager {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub async fn run() -> Result<()> {
-    let url =
-        env::var("DATABASE_URL").unwrap_or_else(|_| "sqlite://../data/one_click_launch.db".into());
+    let db_path = std::env::current_exe()
+        .unwrap()
+        .parent()
+        .map(|dir| dir.join("data").join("one_click_launch.db"))
+        .unwrap();
+
+    // 打印数据库路径用于调试
+    println!("db_path:{:?}", db_path);
+
+    // 确保数据库所在的目录存在
+    if let Some(parent) = db_path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+
+    // 检查数据库文件是否存在，如果不存在则创建空文件
+    if !db_path.exists() {
+        // 创建空的数据库文件
+        fs::File::create(&db_path)?;
+        println!("Database file created at {:?}", db_path);
+    }
+
+    // let url =
+    //     env::var("DATABASE_URL").unwrap_or_else(|_| "sqlite://../data/one_click_launch.db".into());
     // 创建连接池
     let pool = SqlitePoolOptions::new()
         .max_connections(5)
-        .connect(&url)
+        .connect(db_path.to_str().unwrap())
         .await?;
 
     launcher::initialize(&pool).await?;
@@ -88,6 +109,7 @@ pub async fn run() -> Result<()> {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_persisted_scope::init())
+        .plugin(tauri_plugin_os::init())
         .invoke_handler(tauri::generate_handler![
             greet,
             store_selected_path,

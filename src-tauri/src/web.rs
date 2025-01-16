@@ -59,7 +59,7 @@ pub async fn copy_launcher(
 
     let launcher_resoures = launcher_resource::query_by_launcher_id(&mut tx, launcher_id).await?;
 
-    let mut new_name = format!("{}-副本", launcher.name);
+    let new_name = format!("{}-副本", launcher.name);
 
     // 2. 复制资源
     let new_launcher_id = launcher::create(&mut tx, &new_name, Some(launcher.sort)).await?;

@@ -32,7 +32,7 @@ where
 {
     let id = sqlx::query("INSERT INTO launcher (name,sort) VALUES (?,?)")
         .bind(launcher_name)
-        .bind(sort)
+        .bind(sort.unwrap_or_default())
         .execute(executor)
         .await?
         .last_insert_rowid();
@@ -100,21 +100,4 @@ where
         .await?;
 
     Ok(launcher)
-}
-
-/// 重新创建 launcher 表
-pub async fn recreate_table(pool: &SqlitePool) -> Result<()> {
-    // TODO
-    sqlx::query("DROP TABLE IF EXISTS launcher")
-        .execute(pool)
-        .await?;
-    sqlx::query(
-        r#"CREATE TABLE IF NOT EXISTS launcher(
-                id          INTEGER PRIMARY KEY NOT NULL,
-                name        VARCHAR             NOT NULL,
-                sort        INTEGER             NOT NULL)"#,
-    )
-    .execute(pool)
-    .await?;
-    Ok(())
 }

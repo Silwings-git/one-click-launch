@@ -86,7 +86,7 @@ export default {
   display: flex;
   flex-direction: row;
   /* 水平排列 */
-  gap: 30px;
+  gap: 10px;
   /* 每个 Launcher 之间的间距 */
   overflow-x: auto;
   /* 开启水平滚动 */
