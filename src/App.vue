@@ -9,7 +9,6 @@ import Home from "./home.vue";
 
 export default defineComponent({
     components: {
-        Demo,
         Launcher,
         Home
     },

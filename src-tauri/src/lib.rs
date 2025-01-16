@@ -11,6 +11,7 @@ use tauri::{
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_opener::OpenerExt;
 use tracing::info;
+use tauri::Emitter;
 mod db;
 pub mod error;
 mod web;
@@ -63,6 +64,12 @@ pub struct DatabaseManager {
     pub pool: SqlitePool,
 }
 
+#[derive(Clone, serde::Serialize)]
+struct Payload {
+    args: Vec<String>,
+    cwd: String,
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub async fn run() -> Result<()> {
     let db_path = env::current_exe()?
@@ -88,7 +95,7 @@ pub async fn run() -> Result<()> {
     // 创建连接池
     let pool = SqlitePoolOptions::new()
         .max_connections(5)
-        .connect(db_path.to_str().unwrap())
+        .connect(&db_path.to_string_lossy().to_string())
         .await?;
 
     launcher::initialize(&pool).await?;
@@ -152,9 +159,13 @@ pub async fn run() -> Result<()> {
             _ => {}
         })
         .manage(db_manager)
+        // 优先注册单例插件
+        .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
+            println!("{}, {argv:?}, {cwd}", app.package_info().name);
+            app.emit("single-instance", Payload { args: argv, cwd }).unwrap();
+        }))
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_persisted_scope::init())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_autostart::init(
