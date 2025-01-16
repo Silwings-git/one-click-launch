@@ -153,6 +153,7 @@ pub async fn run() -> Result<()> {
             web::delete_resource,
             web::query_launchers,
             web::launch,
+            web::hide_window,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

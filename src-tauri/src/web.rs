@@ -1,6 +1,6 @@
 use anyhow::Result;
 use rand::{distributions::Alphanumeric, Rng};
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 use tracing::info;
 
 use crate::{
@@ -226,5 +226,15 @@ pub async fn launch(
         }
     }
 
+    Ok(())
+}
+
+/// 关闭窗口
+#[tauri::command]
+pub async fn hide_window(
+    app: AppHandle
+) -> Result<(), OneClickLaunchError> {
+    let window = app.get_webview_window("main").unwrap();
+    let _ = window.hide();
     Ok(())
 }
