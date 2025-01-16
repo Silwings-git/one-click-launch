@@ -1,7 +1,6 @@
 <template>
     <div class="launcher">
         <div class="header">
-            <!-- <span class="name">启动器名称</span> -->
             <span v-if="!isEditing" class="name" @dblclick="editLauncherName" title="双击修改名称">
                 {{ this.data.name }}
             </span>
@@ -46,7 +45,7 @@
                 @input="updateName(item.id, $event.target.value)" @blur="onNameEditComplete(item.id)">
                 <span class="data-text">
                     <strong>{{ item.name }}:</strong>
-                    {{ item.path }}
+                    <span>{{ item.path }}</span>
                 </span>
                 <button class="delete-button" @click="deleteRow(item.id)">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16"
@@ -64,6 +63,9 @@
 <script>
 import { confirm, message ,open} from "@tauri-apps/plugin-dialog";
 import {invoke} from "@tauri-apps/api/core";
+import { useToast } from "vue-toastification";
+
+const toast = useToast()
 
 export default {
     props: {
@@ -82,6 +84,10 @@ export default {
             addUrlName:"",
             addUrlContent:""
         };
+    },
+    created() {
+        // 包装 launch 方法为防抖函数
+        this.debouncedLaunch = this.debounce(this.launch, 2000); // 2秒防抖
     },
     methods: {
         editLauncherName() {
@@ -136,11 +142,9 @@ export default {
             this.$emit("launcher-updated", this.data.id);
         },
         async launch() {
+            toast.info("正在启动...");
             await invoke("launch", { launcherId: this.data.id });
-            await message("启动成功！所有内容已激活！", {
-                title: "启动通知",
-                type: "error",
-            });
+            toast.success("启动成功！所有内容已激活！");
         },
         showAddUrlDialog() {
             this.showDialog = true; // 打开添加网址的对话框
@@ -162,11 +166,17 @@ export default {
         },
         moveLauncher(type){
             this.$emit("launcher-moved", this.data.id, type);
-        }
-    },
+        },
+        debounce(func, delay) {
+            let timer;
+            return function (...args) {
+                if (timer) clearTimeout(timer);
+                timer = setTimeout(() => func.apply(this, args), delay);
+            };
+        },
+    }
 };
 </script>
-
 <style scoped>
 .launcher {
     width: 300px;
@@ -213,6 +223,7 @@ hr {
 .content {
     flex: 1;
     overflow-y: auto;
+
 }
 
 .add-row {
@@ -244,7 +255,28 @@ hr {
 }
 
 .data-text {
+    flex: 1 0 0;
+    width: 0;
+    word-break: break-all;
+    display: flex;
+    flex-flow: column nowrap;
+}
+
+.delete-button {
+    flex-shrink: 0;
+}
+
+.data-text {
     font-size: 14px;
+}
+
+.data-text span {
+    overflow: hidden;
+    /* 隐藏溢出内容 */
+    text-overflow: ellipsis;
+    /* 超出部分显示省略号 */
+    white-space: nowrap;
+    /* 不换行 */
 }
 
 .delete-button,
