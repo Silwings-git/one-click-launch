@@ -1,12 +1,12 @@
 use anyhow::Result;
 use rand::{distributions::Alphanumeric, Rng};
-use tauri::State;
+use tauri::{AppHandle, State};
 use tracing::info;
 
 use crate::{
     db::{launcher, launcher_resource},
     error::OneClickLaunchError,
-    open_using_default_program, AppState, DatabaseManager,
+    open_using_default_program, DatabaseManager,
 };
 
 /// 创建新的启动器
@@ -132,7 +132,7 @@ pub async fn delete_launcher(
     launcher::delete_by_id(&mut tx, launcher_id).await?;
 
     launcher_resource::delete_by_launcher(&mut tx, launcher_id).await?;
-    
+
     tx.commit().await?;
 
     Ok(())
@@ -211,14 +211,14 @@ pub async fn delete_resource(
 /// 启动启动器
 #[tauri::command]
 pub async fn launch(
-    app: State<'_, AppState>,
+    app: AppHandle,
     db: State<'_, DatabaseManager>,
     launcher_id: i64,
 ) -> Result<(), OneClickLaunchError> {
     let resources = launcher_resource::query_by_launcher_id(&db.pool, launcher_id).await?;
 
     for resource in resources.iter() {
-        if let Err(e) = open_using_default_program(app.clone(), resource.path.as_str()) {
+        if let Err(e) = open_using_default_program(&app, resource.path.as_str()) {
             info!(
                 "启动资源失败,资源名称: {:?},资源路径: {:?},错误信息: {:?}",
                 &resource.name, &resource.path, e

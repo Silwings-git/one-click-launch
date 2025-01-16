@@ -20,7 +20,8 @@
         "minHeight": 600,
         "maxWidth": 800,
         "maxHeight": 600,
-        "maximizable":false
+        "maximizable":false,
+        "devtools": true
       }
     ],
     "security": {
