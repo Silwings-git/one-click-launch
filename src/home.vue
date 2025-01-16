@@ -75,10 +75,13 @@ export default {
 
 <style scoped>
 .home {
-  width: 770px;
-  height: 584px;
+  width: 100%;
+  height: 100%;
   padding: 0px;
   box-sizing: border-box;
+  display: flex;
+  flex-flow: column nowrap;
+  overflow: hidden;
 }
 
 /* 容器样式 */
@@ -90,26 +93,29 @@ export default {
   /* 每个 Launcher 之间的间距 */
   overflow-x: auto;
   /* 开启水平滚动 */
-  padding: 10px 0px 10px 10px;
-  scrollbar-width: thin;
+  padding: 10px 10px 10px 10px;
+  scrollbar-width: auto;
   /* 调整滚动条宽度 */
+ /* flex:1; */
+ /* height: clac(100vh -50px); */
 }
 
 .launcher-container::-webkit-scrollbar {
-  height: 8px;
+  height: 10px;
   /* 滚动条高度 */
 }
 
 .launcher-container::-webkit-scrollbar-thumb {
-  background-color: #007bff;
+  background-color: #8B8B8B;
   /* 滚动条颜色 */
-  border-radius: 4px;
+  border-radius: 5px;
   /* 滚动条圆角 */
 }
 
 /* 确保每个 launcher 的宽度固定 */
 .launcher-container>* {
   flex: 0 0 300px;
+  width: 0;
   /* 宽度固定为 300px，不随容器调整 */
   height: 500px;
   /* 高度固定为 500px，和原始组件一致 */

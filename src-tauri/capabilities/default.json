@@ -8,6 +8,7 @@
     "shell:allow-open",
     "dialog:allow-open",
     "dialog:allow-message",
-    "dialog:allow-confirm"
+    "dialog:allow-confirm",
+    "core:window:allow-is-resizable"
   ]
 }

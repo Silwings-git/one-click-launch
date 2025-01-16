@@ -15,11 +15,7 @@
         "title": "one-click-launch",
         "width": 800,
         "height": 600,
-        "maxWidth":800,
-        "maxHeight":600,
-        "resizable":false,
-        "maximized":false,
-        "fullscreen":false
+        "resizable":false
       }
     ],
     "security": {
