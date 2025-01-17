@@ -1,6 +1,6 @@
 use crate::error::OneClickLaunchError;
 use anyhow::Result;
-use db::{launcher, launcher_resource};
+use db::{launcher, launcher_resource, settings};
 use sqlx::{sqlite::SqlitePoolOptions, SqlitePool};
 use std::{env, fs};
 use tauri::Emitter;
@@ -73,6 +73,8 @@ pub async fn run() -> Result<()> {
     launcher::initialize(&pool).await?;
 
     launcher_resource::initialize(&pool).await?;
+
+    settings::initialize(&pool).await?;
 
     let db_manager: DatabaseManager = DatabaseManager { pool };
 
@@ -154,6 +156,9 @@ pub async fn run() -> Result<()> {
             web::query_launchers,
             web::launch,
             web::hide_window,
+            web::save_setting,
+            web::read_setting,
+            web::read_all_setting,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

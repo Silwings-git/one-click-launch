@@ -8,7 +8,7 @@
                 @keyup.enter="saveLauncherName" />
             <div class="button-container">
                 <button class="copy-button" @click="copyLauncher">复制</button>
-                <button class="delete-launcher" @click="deleteLauncher">
+                <button class="delete-launcher" @click="deleteLauncher" title="删除">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16"
                         height="16">
                         <path
@@ -19,11 +19,11 @@
         </div>
         <hr />
         <div class="add-row">
-            <div class="move-launcher" @click="moveLauncher(0)"><</div>
+            <div class="move-launcher" @click="moveLauncher(0)" title="向左移动">&lt;</div>
             <div class="add-left" @click="addRow(false)">+ 添加</div>
             <div class="add-folder-button" @click="addRow(true)">添加文件夹</div>
             <div class="add-url-button" @click="showAddUrlDialog">添加网址</div>
-            <div class="move-launcher" @click="moveLauncher(1)">></div>
+            <div class="move-launcher" @click="moveLauncher(1)" title="向右移动">&gt;</div>
         </div>
         <div class="content">
             <!-- 弹框部分 -->
@@ -31,9 +31,10 @@
                 <div class="dialog">
                     <h3>添加网址</h3>
                     <label for="url-name">名称:</label>
-                    <input type="text" id="url-name" v-model="addUrlName"  @keydown.enter="addUrl" :placeholder="addUrlNamePlaceholder" />
+                    <input type="text" id="url-name" v-model="addUrlName" @keydown.enter="addUrl"
+                        :placeholder="addUrlNamePlaceholder" />
                     <label for="url-content">网址:</label>
-                    <input type="text" id="url-content" v-model="addUrlContent"  @keydown.enter="addUrl" />
+                    <input type="text" id="url-content" v-model="addUrlContent" @keydown.enter="addUrl" />
                     <div class="dialog-actions">
                         <button @click="addUrl">确认</button>
                         <button @click="closeDialog">取消</button>
@@ -43,15 +44,14 @@
 
             <div class="data-row" v-for="(item, index) in data.resources" :key="item.id" :title="item.path">
                 <span class="data-text">
-                    <!-- <strong>{{ item.name }}:</strong> -->
                     <span v-if="!editingResourceState.get(item.id)" @dblclick="editResourceName(item)" title="双击修改名称">
                         <strong>{{ item.name }}:</strong>
                     </span>
-                    <input v-if="editingResourceState.get(item.id)" v-model="newResourceName" class="name-input" @blur="saveResourceName(item)"
-                        @keyup.enter="saveResourceName(item)" />
+                    <input v-if="editingResourceState.get(item.id)" v-model="newResourceName" class="name-input"
+                        @blur="saveResourceName(item)" @keyup.enter="saveResourceName(item)" />
                     <span>{{ item.path }}</span>
                 </span>
-                <button class="delete-button" @click="deleteRow(item.id)">
+                <button class="delete-button" @click="deleteRow(item.id)" title="删除">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16"
                         height="16">
                         <path
@@ -60,31 +60,14 @@
                 </button>
             </div>
         </div>
-        <!-- <button class="launch-button" @click="launch">启动</button> -->
-        <button 
-            class="launch-button" 
-            :disabled="isLaunching" 
-            @click="launch">
+        <button class="launch-button" :disabled="isLaunching" @click="launch">
             <span v-if="!isLaunching">启动</span>
             <span v-else>
-                <svg 
-                    class="loading-icon" 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    stroke-width="2" 
-                    stroke-linecap="round" 
-                    stroke-linejoin="round" 
-                    width="18" 
+                <svg class="loading-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18"
                     height="18">
                     <circle cx="12" cy="12" r="10" stroke-dasharray="80" stroke-dashoffset="60">
-                        <animateTransform
-                            attributeName="transform"
-                            type="rotate"
-                            from="0 12 12"
-                            to="360 12 12"
-                            dur="1s"
+                        <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s"
                             repeatCount="indefinite" />
                     </circle>
                 </svg>
@@ -95,8 +78,8 @@
 </template>
 
 <script>
-import { confirm, message ,open} from "@tauri-apps/plugin-dialog";
-import {invoke} from "@tauri-apps/api/core";        
+import { confirm, message, open } from "@tauri-apps/plugin-dialog";
+import { invoke } from "@tauri-apps/api/core";
 import { useToast } from "vue-toastification";
 import { platform } from '@tauri-apps/plugin-os'
 
@@ -116,9 +99,9 @@ export default {
             showDialog: false, // 控制网址弹框的显示
             newLauncherName: "", // 临时存储的新启动器名称
             isEditing: false, // 是否处于编辑模式
-            addUrlName:"",
-            addUrlContent:"",
-            addUrlNamePlaceholder:"网页",
+            addUrlName: "",
+            addUrlContent: "",
+            addUrlNamePlaceholder: "网页",
             isLaunching: false, // 是否正在启动
             editingResourceState: new Map(),
             newResourceName: "",
@@ -147,7 +130,7 @@ export default {
             this.$emit("launcher-updated", this.data.id);
         },
         editResourceName(item) {
-            this.editingResourceState.set(item.id,true); // 进入编辑模式
+            this.editingResourceState.set(item.id, true); // 进入编辑模式
             this.newResourceName = item.name; // 预填当前名称
             this.$nextTick(() => {
                 // 自动聚焦到输入框
@@ -158,27 +141,27 @@ export default {
         async saveResourceName(item) {
             if (this.newResourceName.trim()) {
                 const trimName = this.newResourceName.trim();
-                if(item.name === trimName){
-                    this.editingResourceState.set(item.id,false); // 退出编辑模式
+                if (item.name === trimName) {
+                    this.editingResourceState.set(item.id, false); // 退出编辑模式
                     return;
                 }
                 this.newResourceName = trimName; // 保存修改后的名称
             }
             await invoke("modify_resource_name", { resourceId: item.id, name: this.newResourceName });
-            this.editingResourceState.set(item.id,false); // 退出编辑模式
+            this.editingResourceState.set(item.id, false); // 退出编辑模式
             this.$emit("launcher-updated", this.data.id);
         },
         async addRow(directory) {
             try {
 
                 let defaultPath = ""; // 默认不设置路径
-                
-                if (!directory){
+
+                if (!directory) {
                     // 检测操作系统
                     const currentPlatform = await platform();
                     if (currentPlatform === "windows") {
                         // 只有在 Windows 系统时设置预定义路径
-                        defaultPath = "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs"; // 替换为你的预定义路径
+                        defaultPath = "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs";
                     }
                 }
 
@@ -198,7 +181,7 @@ export default {
             }
         },
         async deleteRow(resourceId) {
-            await invoke("delete_resource",{resourceId: resourceId})
+            await invoke("delete_resource", { resourceId: resourceId })
             this.$emit("launcher-updated", this.data.id);
         },
         async deleteLauncher() {
@@ -207,21 +190,21 @@ export default {
                 { title: "确认删除", type: "question" }
             );
             if (userConfirmed) {
-                 await invoke("delete_launcher",{"launcherId":this.data.id});
-                 this.$emit("launcher-updated", this.data.id);
+                await invoke("delete_launcher", { "launcherId": this.data.id });
+                this.$emit("launcher-updated", this.data.id);
             }
         },
         async copyLauncher() {
-            await invoke("copy_launcher",{launcherId: this.data.id});
+            await invoke("copy_launcher", { launcherId: this.data.id });
             this.$emit("launcher-updated", this.data.id);
         },
         async launch() {
             this.isLaunching = true;
-            try{
+            try {
                 await invoke("launch", { launcherId: this.data.id });
                 toast.success("启动成功！所有内容已激活！");
-                await invoke("hide_window",{});
-            }catch (error) {
+                await invoke("hide_window", {});
+            } catch (error) {
                 console.error("启动失败:", error);
                 toast.error("启动失败！");
             } finally {
@@ -236,7 +219,7 @@ export default {
             if (this.addUrlContent) {
                 let urlName = this.addUrlName;
                 if (!urlName) {
-                    urlName= this.addUrlNamePlaceholder;
+                    urlName = this.addUrlNamePlaceholder;
                 }
                 await invoke("add_resource", { launcherId: this.data.id, name: urlName, path: this.addUrlContent });
                 this.$emit("launcher-updated", this.data.id);
@@ -250,7 +233,7 @@ export default {
             this.addUrlName = "";
             this.addUrlContent = "";
         },
-        moveLauncher(type){
+        moveLauncher(type) {
             this.$emit("launcher-moved", this.data.id, type);
         },
         debounce(func, delay) {
@@ -324,6 +307,7 @@ hr {
     /* 给按钮添加间距 */
 }
 
+.move-launcher:hover,
 .add-left:hover,
 .add-folder-button:hover,
 .add-url-button:hover {

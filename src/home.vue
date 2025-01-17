@@ -2,31 +2,36 @@
   <div class="home">
     <div class="topbar">
       <button class="create-launcher-button" @click="createLauncher">创建启动器</button>
-      <div class="auto-start-container">
-        <label class="checkbox-label">
-        <input
-          type="checkbox"
-          v-model="autoLaunch"
-          @change="toggleAutoLaunch"
-        />
-        开机启动
-      </label>
-  </div>
-  </div>
-    <div class="launcher-container">
-      <launcher v-for="(item, index) in launchers" 
-      :key="index" 
-      :launcherData="item"
-      @launcher-updated="refreshLaunchers"
-      @launcher-moved="moveLauncher"
-       />
+      <div class="topbar-button">
+        <div class="edit-mode-container">
+          <label class="checkbox-label">
+            <input type="checkbox" v-model="editMode" @change="toggleEditMode" />
+            编辑模式
+          </label>
+        </div>
+        <div class="auto-start-container">
+          <label class="checkbox-label">
+            <input type="checkbox" v-model="autoLaunch" @change="toggleAutoLaunch" />
+            开机启动
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="launcher-container" v-if="editMode">
+      <launcher v-for="(item, index) in launchers" :key="index" :launcherData="item"
+        @launcher-updated="refreshLaunchers" @launcher-moved="moveLauncher" />
+    </div>
+    <div class="launcher-lite-container" v-if="!editMode">
+      <launcher-lite v-for="(item, index) in launchers" :key="index" :launcherData="item"
+        class="launcher-lite-container-item" @launcher-updated="refreshLaunchers" @launcher-moved="moveLauncher" />
     </div>
   </div>
 </template>
 
 <script>
-import Launcher from './Launcher.vue'; // 导入 Launcher 组件
-import {invoke} from "@tauri-apps/api/core";
+import Launcher from './Launcher.vue';
+import LauncherLite from './LauncherLite.vue';
+import { invoke } from "@tauri-apps/api/core";
 import { enable, isEnabled, disable } from '@tauri-apps/plugin-autostart';
 import { useToast } from "vue-toastification";
 
@@ -35,6 +40,7 @@ const toast = useToast()
 export default {
   components: {
     Launcher,
+    LauncherLite
   },
   data() {
     return {
@@ -42,7 +48,8 @@ export default {
       // 开机启动状态
       autoLaunch: false,
       // 开机启动锁
-      toggleLock: false
+      toggleLock: false,
+      editMode: true
     };
   },
   methods: {
@@ -81,7 +88,7 @@ export default {
         sort: index
       }));
 
-      await invoke("modify_launcher_sort", {launchers: sortList});
+      await invoke("modify_launcher_sort", { launchers: sortList });
 
       this.refreshLaunchers();
     },
@@ -106,6 +113,15 @@ export default {
         this.toggleLock = false; // 释放锁
       }
     },
+    async toggleEditMode() {
+      await invoke("save_setting", { key: "editMode", value: this.editMode ? "true" : "false" })
+      this.fetchEditModeStatus();
+    },
+    // 获取当前编辑模式设置
+    async fetchEditModeStatus() {
+      const em = await invoke("read_setting", { key: "editMode" })
+      this.editMode = em == null || em.value === "true";
+    },
     // 获取当前开机启动状态
     async fetchAutoLaunchStatus() {
       try {
@@ -117,8 +133,9 @@ export default {
   },
   mounted() {
     // 初始化时获取开机启动状态
-      this.fetchAutoLaunchStatus();
-      this.refreshLaunchers(); // 页面加载时刷新 Launcher 列表
+    this.fetchAutoLaunchStatus();
+    this.refreshLaunchers(); // 页面加载时刷新 Launcher 列表
+    this.fetchEditModeStatus();
   },
 };
 </script>
@@ -146,8 +163,8 @@ export default {
   padding: 10px 10px 10px 10px;
   scrollbar-width: auto;
   /* 调整滚动条宽度 */
- /* flex:1; */
- /* height: clac(100vh -50px); */
+  /* flex:1; */
+  /* height: clac(100vh -50px); */
 }
 
 .launcher-container::-webkit-scrollbar {
@@ -169,6 +186,28 @@ export default {
   /* 宽度固定为 300px，不随容器调整 */
   height: 500px;
   /* 高度固定为 500px，和原始组件一致 */
+  padding: 10px 10px 10px 10px;
+}
+
+/* 确保每个 launcher 的宽度固定 */
+.launcher-lite-container {
+  margin-top: 10px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-evenly;
+  /* 水平排列并均匀分布 */
+  align-content: flex-start;
+  /* 控制多行间的对齐方式 */
+  gap: 10px;
+  overflow-y: auto;
+}
+
+.launcher-lite-container-item {
+  aspect-ratio: 2 / 1;
+  flex: calc(25%);
+  /* 宽度为容器的四分之一，减去间距 */
 }
 
 /* 顶部栏样式 */
@@ -214,7 +253,8 @@ export default {
   /* 鼠标按下背景色 */
 }
 
-.auto-start-container {
+.auto-start-container,
+.edit-mode-container {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -231,7 +271,13 @@ export default {
 
 input[type="checkbox"] {
   margin-right: 10px;
-  transform: scale(1.2); /* 放大复选框大小 */
+  transform: scale(1.2);
+  /* 放大复选框大小 */
   cursor: pointer;
+}
+
+.topbar-button {
+  display: flex;
+  gap: 10px;
 }
 </style>
