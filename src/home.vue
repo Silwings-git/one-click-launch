@@ -28,6 +28,10 @@
 import Launcher from './Launcher.vue'; // 导入 Launcher 组件
 import {invoke} from "@tauri-apps/api/core";
 import { enable, isEnabled, disable } from '@tauri-apps/plugin-autostart';
+import { useToast } from "vue-toastification";
+
+const toast = useToast()
+
 export default {
   components: {
     Launcher,
@@ -36,6 +40,7 @@ export default {
     return {
       launchers: [], // 用于存储从后端获取的启动器列表
       autoLaunch: false,
+      toggleLock: false
     };
   },
   methods: {
@@ -80,10 +85,23 @@ export default {
     },
     // 切换开机启动状态
     async toggleAutoLaunch() {
-      if(await isEnabled()){
-        await disable()
-      }else{
-        await enable()
+      if (this.toggleLock) {
+        return; // 如果已有任务在执行，直接返回
+      }
+      this.toggleLock = true;
+      try {
+        if (await isEnabled()) {
+          await disable();
+        } else {
+          await enable();
+        }
+        // 更新当前状态
+        this.autoLaunch = await isEnabled();
+      } catch (error) {
+        console.error("Failed to toggle auto-launch:", error);
+        toast.error("调整开机启动失败！");
+      } finally {
+        this.toggleLock = false; // 释放锁
       }
     },
     // 获取当前开机启动状态
