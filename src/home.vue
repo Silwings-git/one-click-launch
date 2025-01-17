@@ -39,7 +39,9 @@ export default {
   data() {
     return {
       launchers: [], // 用于存储从后端获取的启动器列表
+      // 开机启动状态
       autoLaunch: false,
+      // 开机启动锁
       toggleLock: false
     };
   },

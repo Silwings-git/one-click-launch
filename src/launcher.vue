@@ -31,9 +31,9 @@
                 <div class="dialog">
                     <h3>添加网址</h3>
                     <label for="url-name">名称:</label>
-                    <input type="text" id="url-name" v-model="addUrlName" />
+                    <input type="text" id="url-name" v-model="addUrlName"  @keydown.enter="addUrl" :placeholder="addUrlNamePlaceholder" />
                     <label for="url-content">网址:</label>
-                    <input type="text" id="url-content" v-model="addUrlContent" />
+                    <input type="text" id="url-content" v-model="addUrlContent"  @keydown.enter="addUrl" />
                     <div class="dialog-actions">
                         <button @click="addUrl">确认</button>
                         <button @click="closeDialog">取消</button>
@@ -118,6 +118,7 @@ export default {
             isEditing: false, // 是否处于编辑模式
             addUrlName:"",
             addUrlContent:"",
+            addUrlNamePlaceholder:"网页",
             isLaunching: false, // 是否正在启动
             editingResourceState: new Map(),
             newResourceName: "",
@@ -232,8 +233,12 @@ export default {
             this.dropdownVisible = false; // 关闭下拉菜单
         },
         async addUrl() {
-            if (this.addUrlName && this.addUrlContent) {
-                await invoke("add_resource", { launcherId: this.data.id, name: this.addUrlName, path: this.addUrlContent });
+            if (this.addUrlContent) {
+                let urlName = this.addUrlName;
+                if (!urlName) {
+                    urlName= this.addUrlNamePlaceholder;
+                }
+                await invoke("add_resource", { launcherId: this.data.id, name: urlName, path: this.addUrlContent });
                 this.$emit("launcher-updated", this.data.id);
                 await this.closeDialog();
             } else {
