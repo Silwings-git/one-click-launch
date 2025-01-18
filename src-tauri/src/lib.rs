@@ -3,6 +3,7 @@ use anyhow::Result;
 use api::{launcher_api, setting_api, window_api};
 use db::{launcher, launcher_resource, settings};
 use sqlx::{sqlite::SqlitePoolOptions, SqlitePool};
+use std::path::PathBuf;
 use std::{env, fs};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconEvent};
 use tauri::Emitter;
@@ -41,22 +42,24 @@ struct Payload {
 }
 
 pub struct WindowContext {
-    pub tary_icon: TrayIcon,
+    pub tray_icon: TrayIcon,
 }
 
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub async fn run() -> Result<()> {
-    let db_path = env::current_exe()?
-        .parent()
-        .map(|dir| dir.join("data").join("one_click_launch.db"))
-        .unwrap();
+fn get_db_path() -> Result<PathBuf> {
+    // 获取用户的 AppData 目录路径
+    let app_data = env::var("APPDATA")?;
 
-    // 打印数据库路径用于调试
-    println!("db_path:{:?}", db_path);
+    // 拼接到特定的文件夹路径
+    let db_path = PathBuf::from(app_data)
+        .join("one_click_launch")
+        .join("data")
+        .join("one_click_launch.db");
 
-    // 确保数据库所在的目录存在
+    // 确保目录存在
     if let Some(parent) = db_path.parent() {
-        fs::create_dir_all(parent)?;
+        if !parent.exists() {
+            fs::create_dir_all(parent)?;
+        }
     }
 
     // 检查数据库文件是否存在，如果不存在则创建空文件
@@ -65,6 +68,15 @@ pub async fn run() -> Result<()> {
         fs::File::create(&db_path)?;
         println!("Database file created at {:?}", db_path);
     }
+
+    Ok(db_path)
+}
+
+async fn init_db() -> Result<DatabaseManager> {
+    let db_path = get_db_path()?;
+
+    // 打印数据库路径用于调试
+    println!("db_path:{:?}", db_path);
 
     // 创建连接池
     let pool = SqlitePoolOptions::new()
@@ -78,7 +90,13 @@ pub async fn run() -> Result<()> {
 
     settings::initialize(&pool).await?;
 
-    let db_manager: DatabaseManager = DatabaseManager { pool };
+    Ok(DatabaseManager { pool })
+}
+
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
+pub async fn run() -> Result<()> {
+
+    let db_manager = init_db().await?;
 
     tauri::Builder::default()
         .setup(|app| {
@@ -118,9 +136,7 @@ pub async fn run() -> Result<()> {
                 })
                 .build(app)?;
 
-            let window_context = WindowContext {
-                tary_icon: tray_icon,
-            };
+            let window_context = WindowContext { tray_icon };
 
             app.manage(window_context);
 

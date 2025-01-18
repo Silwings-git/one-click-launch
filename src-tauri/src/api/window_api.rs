@@ -41,6 +41,6 @@ pub async fn reflush_tray(
     let menu = Menu::with_items(&app, &menu_items)?;
 
     // 设置菜单到托盘图标
-    window_context.tary_icon.set_menu(Some(menu))?;
+    window_context.tray_icon.set_menu(Some(menu))?;
     Ok(())
 }

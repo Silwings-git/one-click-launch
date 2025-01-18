@@ -149,12 +149,12 @@ export default {
     }
   },
   mounted() {
-    this.setupEventListener();
     this.reflush_tray();
     // 初始化时获取开机启动状态
     this.fetchAutoLaunchStatus();
     this.refreshLaunchers(); // 页面加载时刷新 Launcher 列表
     this.fetchEditModeStatus();
+    this.setupEventListener();
   },
 };
 </script>
