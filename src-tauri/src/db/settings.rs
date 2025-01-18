@@ -21,7 +21,7 @@ where
     .execute(executor)
     .await?;
 
-    Ok(())1
+    Ok(())
 }
 
 /// 存储一个设置
