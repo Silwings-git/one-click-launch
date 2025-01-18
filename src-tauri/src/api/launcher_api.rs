@@ -1,6 +1,6 @@
 use anyhow::Result;
 use rand::{distributions::Alphanumeric, Rng};
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Emitter, State};
 use tracing::info;
 
 use crate::{
@@ -12,11 +12,13 @@ use crate::{
 /// 创建新的启动器
 #[tauri::command]
 pub async fn craete_launcher(
+    app: AppHandle,
     db: State<'_, DatabaseManager>,
     name: Option<String>,
 ) -> Result<i64, OneClickLaunchError> {
     let name = name.unwrap_or_else(generate_default_launcher_name);
     let launcher_id = launcher::create(&db.pool, &name, None).await?;
+    let _ = app.emit("launcher_basic_info_updated", "");
     Ok(launcher_id)
 }
 
@@ -35,20 +37,23 @@ fn generate_random_string(length: usize) -> String {
         .collect()
 }
 
-/// 创建新的启动器
+/// 修改启动器名称
 #[tauri::command]
 pub async fn modify_launcher_name(
+    app: AppHandle,
     db: State<'_, DatabaseManager>,
     launcher_id: i64,
     name: String,
 ) -> Result<(), OneClickLaunchError> {
     launcher::modify_launcher_name(&db.pool, launcher_id, &name).await?;
+    let _ = app.emit("launcher_basic_info_updated", "");
     Ok(())
 }
 
 /// 复制启动器,包含启动器关联的资源数据
 #[tauri::command]
 pub async fn copy_launcher(
+    app: AppHandle,
     db: State<'_, DatabaseManager>,
     launcher_id: i64,
 ) -> Result<i64, OneClickLaunchError> {
@@ -69,6 +74,8 @@ pub async fn copy_launcher(
     }
 
     tx.commit().await?;
+
+    let _ = app.emit("launcher_basic_info_updated", "");
 
     Ok(new_launcher_id)
 }
@@ -124,6 +131,7 @@ pub struct LauncherResourceVo {
 /// 删除启动器
 #[tauri::command]
 pub async fn delete_launcher(
+    app: AppHandle,
     db: State<'_, DatabaseManager>,
     launcher_id: i64,
 ) -> Result<(), OneClickLaunchError> {
@@ -134,6 +142,8 @@ pub async fn delete_launcher(
     launcher_resource::delete_by_launcher(&mut tx, launcher_id).await?;
 
     tx.commit().await?;
+
+    let _ = app.emit("launcher_basic_info_updated", "");
 
     Ok(())
 }
@@ -147,6 +157,7 @@ pub struct LauncherSort {
 /// 调整启动器顺序
 #[tauri::command]
 pub async fn modify_launcher_sort(
+    app: AppHandle,
     db: State<'_, DatabaseManager>,
     launchers: Vec<LauncherSort>,
 ) -> Result<(), OneClickLaunchError> {
@@ -157,6 +168,8 @@ pub async fn modify_launcher_sort(
     }
 
     tx.commit().await?;
+
+    let _ = app.emit("launcher_basic_info_updated", "");
 
     Ok(())
 }
@@ -228,3 +241,5 @@ pub async fn launch(
 
     Ok(())
 }
+
+

@@ -4,12 +4,9 @@ use api::{launcher_api, setting_api, window_api};
 use db::{launcher, launcher_resource, settings};
 use sqlx::{sqlite::SqlitePoolOptions, SqlitePool};
 use std::{env, fs};
+use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconEvent};
 use tauri::Emitter;
-use tauri::{
-    menu::{Menu, MenuItem},
-    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    AppHandle, Manager,
-};
+use tauri::{tray::TrayIconBuilder, AppHandle, Manager};
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_opener::OpenerExt;
 use tracing::info;
@@ -41,6 +38,10 @@ pub struct DatabaseManager {
 struct Payload {
     args: Vec<String>,
     cwd: String,
+}
+
+pub struct WindowContext {
+    pub tary_icon: TrayIcon,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -81,11 +82,7 @@ pub async fn run() -> Result<()> {
 
     tauri::Builder::default()
         .setup(|app| {
-            let quit_i = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&quit_i])?;
-
-            let _tray = TrayIconBuilder::new()
-                .menu(&menu)
+            let tray_icon = TrayIconBuilder::new()
                 .menu_on_left_click(false)
                 .icon(app.default_window_icon().unwrap().clone())
                 .on_tray_icon_event(|tray, event| match event {
@@ -110,11 +107,23 @@ pub async fn run() -> Result<()> {
                         info!("quit menu item was clicked");
                         app.exit(0);
                     }
+                    id if id.starts_with("launch_") => {
+                        if let Ok(launcher_id) = &id["launch_".len()..].parse::<i64>() {
+                            let _ = app.emit("launch", *launcher_id);
+                        }
+                    }
                     _ => {
                         tracing::error!("menu item {:?} not handled", event.id);
                     }
                 })
                 .build(app)?;
+
+            let window_context = WindowContext {
+                tary_icon: tray_icon,
+            };
+
+            app.manage(window_context);
+
             Ok(())
         })
         .on_window_event(|window, event| match event {
@@ -160,6 +169,7 @@ pub async fn run() -> Result<()> {
             setting_api::save_setting,
             setting_api::read_setting,
             setting_api::read_all_setting,
+            window_api::reflush_tray,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

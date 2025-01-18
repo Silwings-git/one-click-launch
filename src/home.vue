@@ -34,6 +34,7 @@ import LauncherLite from './LauncherLite.vue';
 import { invoke } from "@tauri-apps/api/core";
 import { enable, isEnabled, disable } from '@tauri-apps/plugin-autostart';
 import { useToast } from "vue-toastification";
+import { listen } from '@tauri-apps/api/event';
 
 const toast = useToast()
 
@@ -53,6 +54,18 @@ export default {
     };
   },
   methods: {
+    async setupEventListener() {
+      listen('launch', async (event) => {
+        console.log("收到消息: ",event);
+        await this.launch(event.payload);
+      });
+      listen('launcher_basic_info_updated', async (event) => {
+        await this.reflush_tray();
+      });
+    },
+    async launch(launcherId) {
+      await invoke("launch", { launcherId: launcherId });
+    },
     async createLauncher() {
       await invoke("craete_launcher");
       this.editMode = true;
@@ -131,8 +144,13 @@ export default {
         console.error("Failed to fetch auto launch status:", error);
       }
     },
+    async reflush_tray() {
+      await invoke("reflush_tray");
+    }
   },
   mounted() {
+    this.setupEventListener();
+    this.reflush_tray();
     // 初始化时获取开机启动状态
     this.fetchAutoLaunchStatus();
     this.refreshLaunchers(); // 页面加载时刷新 Launcher 列表

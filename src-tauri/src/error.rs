@@ -15,6 +15,9 @@ pub enum OneClickLaunchError {
 
     #[error("{0}")]
     InfoError(#[from] std::io::Error),
+
+    #[error("{0}")]
+    TauriError(#[from] tauri::Error),
 }
 
 // we must manually implement serde::Serialize
