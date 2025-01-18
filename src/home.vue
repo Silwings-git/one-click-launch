@@ -209,7 +209,6 @@ export default {
   aspect-ratio: 2 / 1;
   flex: calc(25%);
   /* 宽度为容器的四分之一，减去间距 */
-  max-width: 25%;
 }
 
 /* 顶部栏样式 */
