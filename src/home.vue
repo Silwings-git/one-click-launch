@@ -55,6 +55,7 @@ export default {
   methods: {
     async createLauncher() {
       await invoke("craete_launcher");
+      this.editMode = true;
       this.refreshLaunchers();
     },
     async refreshLaunchers() {
@@ -196,7 +197,7 @@ export default {
   height: 100%;
   display: flex;
   flex-wrap: wrap;
-  justify-content: space-evenly;
+  justify-content: flex-start;
   /* 水平排列并均匀分布 */
   align-content: flex-start;
   /* 控制多行间的对齐方式 */
@@ -208,6 +209,7 @@ export default {
   aspect-ratio: 2 / 1;
   flex: calc(25%);
   /* 宽度为容器的四分之一，减去间距 */
+  max-width: 25%;
 }
 
 /* 顶部栏样式 */
