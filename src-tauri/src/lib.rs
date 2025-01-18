@@ -1,5 +1,6 @@
 use crate::error::OneClickLaunchError;
 use anyhow::Result;
+use api::{launcher_api, setting_api, window_api};
 use db::{launcher, launcher_resource, settings};
 use sqlx::{sqlite::SqlitePoolOptions, SqlitePool};
 use std::{env, fs};
@@ -12,9 +13,9 @@ use tauri::{
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_opener::OpenerExt;
 use tracing::info;
+mod api;
 mod db;
 pub mod error;
-mod web;
 
 /// 使用系统默认的程序打开指定的文件或 URL。
 ///
@@ -145,20 +146,20 @@ pub async fn run() -> Result<()> {
             Some(vec!["--flag1", "--flag2"]),
         ))
         .invoke_handler(tauri::generate_handler![
-            web::craete_launcher,
-            web::modify_launcher_name,
-            web::copy_launcher,
-            web::delete_launcher,
-            web::modify_launcher_sort,
-            web::add_resource,
-            web::modify_resource_name,
-            web::delete_resource,
-            web::query_launchers,
-            web::launch,
-            web::hide_window,
-            web::save_setting,
-            web::read_setting,
-            web::read_all_setting,
+            launcher_api::craete_launcher,
+            launcher_api::modify_launcher_name,
+            launcher_api::copy_launcher,
+            launcher_api::delete_launcher,
+            launcher_api::modify_launcher_sort,
+            launcher_api::add_resource,
+            launcher_api::modify_resource_name,
+            launcher_api::delete_resource,
+            launcher_api::query_launchers,
+            launcher_api::launch,
+            window_api::hide_window,
+            setting_api::save_setting,
+            setting_api::read_setting,
+            setting_api::read_all_setting,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

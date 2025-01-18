@@ -1,13 +1,10 @@
 use anyhow::Result;
 use rand::{distributions::Alphanumeric, Rng};
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, State};
 use tracing::info;
 
 use crate::{
-    db::{
-        launcher, launcher_resource,
-        settings::{self, Settings},
-    },
+    db::{launcher, launcher_resource},
     error::OneClickLaunchError,
     open_using_default_program, DatabaseManager,
 };
@@ -230,43 +227,4 @@ pub async fn launch(
     }
 
     Ok(())
-}
-
-/// 关闭窗口
-#[tauri::command]
-pub async fn hide_window(app: AppHandle) -> Result<(), OneClickLaunchError> {
-    let window = app.get_webview_window("main").unwrap();
-    let _ = window.hide();
-    Ok(())
-}
-
-/// 保存设置
-#[tauri::command]
-pub async fn save_setting(
-    db: State<'_, DatabaseManager>,
-    key: String,
-    value: String,
-) -> Result<(), OneClickLaunchError> {
-    let setting = Settings { key, value };
-    settings::save(&db.pool, &setting).await?;
-    Ok(())
-}
-
-/// 读取设置
-#[tauri::command]
-pub async fn read_setting(
-    db: State<'_, DatabaseManager>,
-    key: String,
-) -> Result<Option<Settings>, OneClickLaunchError> {
-    let setting = settings::read(&db.pool, &key).await?;
-    Ok(setting)
-}
-
-/// 读取全部设置
-#[tauri::command]
-pub async fn read_all_setting(
-    db: State<'_, DatabaseManager>,
-) -> Result<Vec<Settings>, OneClickLaunchError> {
-    let setting = settings::read_all(&db.pool).await?;
-    Ok(setting)
 }
