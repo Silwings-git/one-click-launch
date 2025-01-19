@@ -88,11 +88,12 @@ pub async fn query_by_launcher_id<'a, E>(
 where
     E: Executor<'a, Database = Sqlite>,
 {
-    let resources =
-        sqlx::query_as("SELECT id,launcher_id,name,path FROM launcher_resource WHERE launcher_id=?")
-            .bind(launcher_id)
-            .fetch_all(executor)
-            .await?;
+    let resources = sqlx::query_as(
+        "SELECT id,launcher_id,name,path FROM launcher_resource WHERE launcher_id=?",
+    )
+    .bind(launcher_id)
+    .fetch_all(executor)
+    .await?;
     Ok(resources)
 }
 

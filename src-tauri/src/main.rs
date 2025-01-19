@@ -6,7 +6,6 @@ use tracing_subscriber::fmt;
 
 #[tokio::main]
 async fn main() -> Result<(), OneClickLaunchError> {
-
     // 只在开发模式下调用日志初始化
     #[cfg(debug_assertions)]
     {

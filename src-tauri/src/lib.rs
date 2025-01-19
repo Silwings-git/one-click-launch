@@ -81,7 +81,7 @@ async fn init_db() -> Result<DatabaseManager> {
     // 创建连接池
     let pool = SqlitePoolOptions::new()
         .max_connections(5)
-        .connect(&db_path.to_string_lossy().to_string())
+        .connect(db_path.to_string_lossy().as_ref())
         .await?;
 
     launcher::initialize(&pool).await?;
@@ -95,7 +95,6 @@ async fn init_db() -> Result<DatabaseManager> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub async fn run() -> Result<()> {
-
     let db_manager = init_db().await?;
 
     tauri::Builder::default()
@@ -142,12 +141,11 @@ pub async fn run() -> Result<()> {
 
             Ok(())
         })
-        .on_window_event(|window, event| match event {
-            tauri::WindowEvent::CloseRequested { api, .. } => {
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();
                 let _ = window.hide();
             }
-            _ => {}
         })
         .manage(db_manager)
         // 优先注册单例插件
