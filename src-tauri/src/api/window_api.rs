@@ -29,9 +29,14 @@ pub async fn reflush_tray(app: AppHandle) -> Result<(), OneClickLaunchError> {
         menu_builder =
             menu_builder.item(&MenuItem::with_id(&app, &id, &title, true, None::<&str>)?);
     }
+
+    if launchers.len() > 0 {
+        menu_builder = menu_builder.separator();
+    }
+
     // 添加退出按钮
     let quit_item = MenuItem::with_id(&app, "quit", "退出", true, None::<&str>)?;
-    let menu = menu_builder.separator().item(&quit_item).build()?;
+    let menu = menu_builder.item(&quit_item).build()?;
 
     // 设置菜单到托盘图标
     window_context.tray_icon.set_menu(Some(menu))?;
