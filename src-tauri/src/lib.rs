@@ -117,7 +117,7 @@ pub async fn run() -> Result<()> {
                         }
                     }
                     _ => {
-                        println!("unhandled event {event:?}");
+                        // println!("unhandled event {event:?}");
                     }
                 })
                 .on_menu_event(|app, event| match event.id.as_ref() {

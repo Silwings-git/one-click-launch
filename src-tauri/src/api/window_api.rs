@@ -1,5 +1,5 @@
 use tauri::{
-    menu::{IsMenuItem, Menu, MenuItem},
+    menu::{MenuBuilder, MenuItem},
     AppHandle, Manager, State,
 };
 
@@ -16,29 +16,24 @@ pub async fn hide_window(app: AppHandle) -> Result<(), OneClickLaunchError> {
 /// 刷新系统图标菜单
 #[tauri::command]
 pub async fn reflush_tray(
-    app: AppHandle, // 确保运行时类型为 Wry
+    app: AppHandle,
 ) -> Result<(), OneClickLaunchError> {
     // 获取全局状态
     let window_context: State<'_, WindowContext> = app.state();
     let database_manager: State<'_, DatabaseManager> = app.state();
     let launchers = launcher::query(&database_manager.pool).await?;
 
+    let mut menu_builder = MenuBuilder::new(&app);
     // 创建动态菜单项
-    let mut menu_items: Vec<Box<dyn IsMenuItem<_>>> = Vec::new();
     for launcher in &launchers {
-        let id = format!("launch_{}", launcher.id); // 动态生成 ID
-        let title = format!("启动: {}", launcher.name); // 动态生成标题
-        let item = MenuItem::with_id(&app, &id, &title, true, None::<&str>)?;
-        menu_items.push(Box::new(item)); // 将 MenuItem 转为 Box<dyn IsMenuItem>
+        let id = format!("launch_{}", launcher.id);
+        let title = format!("启动: {}", launcher.name);
+        menu_builder =
+            menu_builder.item(&MenuItem::with_id(&app, &id, &title, true, None::<&str>)?);
     }
-
     // 添加退出按钮
     let quit_item = MenuItem::with_id(&app, "quit", "退出", true, None::<&str>)?;
-    menu_items.push(Box::new(quit_item)); // 转为 Box<dyn IsMenuItem>
-
-    // 将 Vec<Box<dyn IsMenuItem>> 转换为 &[&dyn IsMenuItem]
-    let menu_items: Vec<&dyn IsMenuItem<_>> = menu_items.iter().map(|item| item.as_ref()).collect();
-    let menu = Menu::with_items(&app, &menu_items)?;
+    let menu = menu_builder.separator().item(&quit_item).build()?;
 
     // 设置菜单到托盘图标
     window_context.tray_icon.set_menu(Some(menu))?;
