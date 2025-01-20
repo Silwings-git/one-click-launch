@@ -40,7 +40,7 @@
 2. 在启动器中添加资源：
    - 点击 `添加` 或 `添加文件夹` ，选择需要打开的资源(可以是任意文档,应用程序等)。
    - 点击 `添加网址` ，输入网址名称和链接。
-3. 添加完成后，点击 `启动` 按钮即可打开启动器中的所有资源。
+3. 添加完成后，点击 `启动` 按钮即可打开启动器中的所有资源。启动成功后主窗口将自动隐藏
 
 ![主界面操作](src/assets/home_desc.png)
 
@@ -90,7 +90,7 @@
 - **Tauri CLI：** 安装 [Tauri CLI](https://tauri.app/)，用于管理 Tauri 的开发和构建：
 
     ```bash
-    cargo install tauri-cli  
+    cargo install create-tauri-app --locked
     ```
 
 - SQLite: 确保系统上支持 SQLite 数据库，因为项目使用 `sqlx` 和 `SQLite` 作为数据存储后端。
