@@ -1,6 +1,6 @@
 [package]
 name = "one-click-launch"
-version = "1.0.0"
+version = "1.0.1"
 description = "One Click Launch"
 authors = ["Silwings"]
 edition = "2021"
