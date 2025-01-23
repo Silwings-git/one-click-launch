@@ -100,6 +100,7 @@ pub async fn run() -> Result<()> {
     tauri::Builder::default()
         .setup(|app| {
             let tray_icon = TrayIconBuilder::new()
+                .tooltip("一键启动")
                 .menu_on_left_click(false)
                 .icon(app.default_window_icon().unwrap().clone())
                 .on_tray_icon_event(|tray, event| match event {
