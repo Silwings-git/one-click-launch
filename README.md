@@ -170,5 +170,5 @@ cargo tauri build  # 生产模式
 如有任何问题或反馈，请通过以下方式联系我们：
 
 - 邮箱：<silwings@163.com>
-- Gitee：[https://gitee.com/silwings](https://gitee.com/silwings)
-- GitHub：[https://github.com/Silwings-git](https://github.com/Silwings-git)
+- Gitee: [https://gitee.com/silwings](https://gitee.com/silwings)
+- GitHub: [https://github.com/Silwings-git](https://github.com/Silwings-git)
