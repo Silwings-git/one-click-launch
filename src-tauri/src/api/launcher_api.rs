@@ -1,12 +1,13 @@
 use anyhow::Result;
-use rand::{distributions::Alphanumeric, Rng};
+use rand::{Rng, distributions::Alphanumeric};
 use tauri::{AppHandle, Emitter, State};
 use tracing::info;
 
 use crate::{
+    DatabaseManager,
     db::{launcher, launcher_resource},
     error::OneClickLaunchError,
-    open_using_default_program, DatabaseManager,
+    open_using_default_program,
 };
 
 /// 创建新的启动器

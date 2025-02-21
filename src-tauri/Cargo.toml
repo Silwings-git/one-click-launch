@@ -3,7 +3,7 @@ name = "one-click-launch"
 version = "1.0.1"
 description = "One Click Launch"
 authors = ["Silwings"]
-edition = "2021"
+edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

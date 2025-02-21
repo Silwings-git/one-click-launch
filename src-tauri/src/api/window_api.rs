@@ -1,9 +1,9 @@
 use tauri::{
-    menu::{MenuBuilder, MenuItem},
     AppHandle, Manager, State,
+    menu::{MenuBuilder, MenuItem},
 };
 
-use crate::{db::launcher, error::OneClickLaunchError, DatabaseManager, WindowContext};
+use crate::{DatabaseManager, WindowContext, db::launcher, error::OneClickLaunchError};
 
 /// 关闭窗口
 #[tauri::command]
@@ -30,7 +30,7 @@ pub async fn reflush_tray(app: AppHandle) -> Result<(), OneClickLaunchError> {
             menu_builder.item(&MenuItem::with_id(&app, &id, &title, true, None::<&str>)?);
     }
 
-    if launchers.len() > 0 {
+    if !launchers.is_empty() {
         menu_builder = menu_builder.separator();
     }
 

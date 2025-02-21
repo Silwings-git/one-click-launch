@@ -1,9 +1,9 @@
 use tauri::State;
 
 use crate::{
+    DatabaseManager,
     db::settings::{self, Settings},
     error::OneClickLaunchError,
-    DatabaseManager,
 };
 
 /// 保存设置

@@ -2,12 +2,12 @@ use crate::error::OneClickLaunchError;
 use anyhow::Result;
 use api::{launcher_api, setting_api, window_api};
 use db::{launcher, launcher_resource, settings};
-use sqlx::{sqlite::SqlitePoolOptions, SqlitePool};
+use sqlx::{SqlitePool, sqlite::SqlitePoolOptions};
 use std::path::PathBuf;
 use std::{env, fs};
-use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconEvent};
 use tauri::Emitter;
-use tauri::{tray::TrayIconBuilder, AppHandle, Manager};
+use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconEvent};
+use tauri::{AppHandle, Manager, tray::TrayIconBuilder};
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_opener::OpenerExt;
 use tracing::info;
@@ -101,7 +101,7 @@ pub async fn run() -> Result<()> {
         .setup(|app| {
             let tray_icon = TrayIconBuilder::new()
                 .tooltip("一键启动")
-                .menu_on_left_click(false)
+                .show_menu_on_left_click(false)
                 .icon(app.default_window_icon().unwrap().clone())
                 .on_tray_icon_event(|tray, event| match event {
                     TrayIconEvent::Click {
