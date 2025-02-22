@@ -9,21 +9,25 @@
             编辑模式
           </label>
         </div>
-        <div class="auto-start-container">
-          <label class="checkbox-label">
-            <input type="checkbox" v-model="autoLaunch" @change="toggleAutoLaunch" />
-            开机启动
-          </label>
+        <div class="edit-mode-container">
+          <div class="setting" @click="openSetting">设置</div>
         </div>
       </div>
     </div>
     <div class="launcher-container" v-if="editMode">
       <launcher v-for="(item, index) in launchers" :key="index" :launcherData="item"
-        @launcher-updated="refreshLaunchers" @launcher-moved="moveLauncher" />
+        @launcher-updated="refreshLaunchers" @launcher-moved="moveLauncher" @settings-updated="refreshLaunchers" />
     </div>
     <div class="launcher-lite-container" v-if="!editMode">
       <launcher-lite v-for="(item, index) in launchers" :key="index" :launcherData="item"
         class="launcher-lite-container-item" @launcher-updated="refreshLaunchers" @launcher-moved="moveLauncher" />
+    </div>
+    <!-- 悬浮框 -->
+    <div v-if="showSetting" class="modal-overlay" @click="closeSetting">
+      <div class="modal-content" @click.stop>
+        <span class="close-btn" @click="closeSetting">&times;</span>
+        <settings @settings-updated="reloadSettings" />
+      </div>
     </div>
   </div>
 </template>
@@ -31,8 +35,8 @@
 <script>
 import Launcher from './Launcher.vue';
 import LauncherLite from './LauncherLite.vue';
+import Settings from './Settings.vue';
 import { invoke } from "@tauri-apps/api/core";
-import { enable, isEnabled, disable } from '@tauri-apps/plugin-autostart';
 import { useToast } from "vue-toastification";
 import { listen } from '@tauri-apps/api/event';
 
@@ -41,22 +45,20 @@ const toast = useToast()
 export default {
   components: {
     Launcher,
-    LauncherLite
+    LauncherLite,
+    Settings
   },
   data() {
     return {
       launchers: [], // 用于存储从后端获取的启动器列表
-      // 开机启动状态
-      autoLaunch: false,
-      // 开机启动锁
-      toggleLock: false,
-      editMode: true
+      editMode: true,
+      showSetting: false
     };
   },
   methods: {
     async setupEventListener() {
       listen('launch', async (event) => {
-        console.log("收到消息: ",event);
+        console.log("收到消息: ", event);
         await this.launch(event.payload);
       });
       listen('launcher_basic_info_updated', async (event) => {
@@ -106,27 +108,6 @@ export default {
 
       this.refreshLaunchers();
     },
-    // 切换开机启动状态
-    async toggleAutoLaunch() {
-      if (this.toggleLock) {
-        return; // 如果已有任务在执行，直接返回
-      }
-      this.toggleLock = true;
-      try {
-        if (await isEnabled()) {
-          await disable();
-        } else {
-          await enable();
-        }
-        // 更新当前状态
-        this.autoLaunch = await isEnabled();
-      } catch (error) {
-        console.error("Failed to toggle auto-launch:", error);
-        toast.error("调整开机启动失败！");
-      } finally {
-        this.toggleLock = false; // 释放锁
-      }
-    },
     async toggleEditMode() {
       await invoke("save_setting", { key: "editMode", value: this.editMode ? "true" : "false" })
       this.fetchEditModeStatus();
@@ -136,24 +117,25 @@ export default {
       const em = await invoke("read_setting", { key: "editMode" })
       this.editMode = em == null || em.value === "true";
     },
-    // 获取当前开机启动状态
-    async fetchAutoLaunchStatus() {
-      try {
-        this.autoLaunch = await isEnabled();
-      } catch (error) {
-        console.error("Failed to fetch auto launch status:", error);
-      }
-    },
     async reflush_tray() {
       await invoke("reflush_tray");
+    },
+    async openSetting() {
+      this.showSetting = true;
+    },
+    async closeSetting() {
+      this.showSetting = false;
+    },
+    async reloadSettings() {
+      // todo
     }
   },
   mounted() {
     this.reflush_tray();
-    // 初始化时获取开机启动状态
-    this.fetchAutoLaunchStatus();
-    this.refreshLaunchers(); // 页面加载时刷新 Launcher 列表
+    this.reloadSettings();
     this.fetchEditModeStatus();
+    // 页面加载时刷新 Launcher 列表
+    this.refreshLaunchers();
     this.setupEventListener();
   },
 };
@@ -272,7 +254,6 @@ export default {
   /* 鼠标按下背景色 */
 }
 
-.auto-start-container,
 .edit-mode-container {
   display: flex;
   justify-content: center;
@@ -299,4 +280,69 @@ input[type="checkbox"] {
   display: flex;
   gap: 10px;
 }
+
+.setting {
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.setting:hover {
+  text-decoration: underline;
+}
+
+.home-container {
+  padding: 20px;
+}
+
+button {
+  padding: 10px 20px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+/* 悬浮框样式 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  position: relative;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.close-btn {
+  position: absolute;
+  top: 0px;
+  right: 7px;
+  font-size: 24px;
+  cursor: pointer;
+  color: #333;
+}
+
+.close-btn:hover {
+  color: #000;
+}
+
 </style>

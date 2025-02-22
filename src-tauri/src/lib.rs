@@ -167,7 +167,7 @@ pub async fn run() -> Result<()> {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_autostart::init(
             MacosLauncher::LaunchAgent,
-            Some(vec!["--flag1", "--flag2"]),
+            Some(vec!["--auto"]),
         ))
         .invoke_handler(tauri::generate_handler![
             launcher_api::craete_launcher,

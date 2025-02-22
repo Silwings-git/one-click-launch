@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "一键启动",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "identifier": "one-click-launch",
   "build": {
     "beforeDevCommand": "yarn dev",
@@ -20,7 +20,8 @@
         "minHeight": 600,
         "maxWidth": 800,
         "maxHeight": 600,
-        "maximizable":false
+        "maximizable":false,
+        "devtools": true
       }
     ],
     "security": {
