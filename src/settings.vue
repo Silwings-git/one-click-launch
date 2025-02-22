@@ -1,11 +1,10 @@
 <template>
-    <div class="settings-container">
+    <div :class="['settings-container', theme]">
         <h2 class="setting-title">设置</h2>
-
         <!-- 主题切换 -->
         <div class="setting-item">
             <label for="theme-select">主题:</label>
-            <select id="theme-select" v-model="selectedTheme" @change="changeTheme">
+            <select id="theme-select" v-model="theme" @change="changeTheme">
                 <option value="light">浅色主题</option>
                 <option value="dark">深色主题</option>
             </select>
@@ -25,22 +24,26 @@
 
 <script>
 import { enable, isEnabled, disable } from '@tauri-apps/plugin-autostart';
+import { invoke } from "@tauri-apps/api/core";
 
 export default {
     data() {
         return {
-            selectedTheme: 'light', // 默认主题
+            // selectedTheme: 'light', // 默认主题
             notificationsEnabled: true, // 默认开启通知
             // 开机启动状态
             autoLaunch: false,
             // 开机启动锁
             toggleLock: false,
+            theme: 'light' // 默认主题为亮色
         };
     },
     methods: {
         // 切换主题
-        changeTheme() {
-            document.documentElement.setAttribute('data-theme', this.selectedTheme);
+        async changeTheme() {
+            await invoke("save_setting", { key: "theme", value: this.theme });
+            // this.theme = this.selectedTheme;
+            this.$emit("settings-updated");
         },
         // 切换通知开关
         toggleNotifications() {
@@ -49,14 +52,6 @@ export default {
             } else {
                 console.log('通知已关闭');
             }
-        },
-        // 保存设置
-        saveSettings() {
-            console.log('设置已保存:', {
-                theme: this.selectedTheme,
-                notifications: this.notificationsEnabled
-            });
-            this.$emit('close'); // 保存后关闭悬浮框
         },
         // 切换开机启动状态
         async toggleAutoLaunch() {
@@ -88,10 +83,17 @@ export default {
                 console.error("Failed to fetch auto launch status:", error);
             }
         },
+        async reloadSettings() {
+            const themeSetting = await invoke("read_setting", { key: "theme" });
+            if (themeSetting?.value) {
+                this.theme = themeSetting.value;
+            }
+        }
     },
     mounted() {
         // 初始化时获取开机启动状态
         this.fetchAutoLaunchStatus();
+        this.reloadSettings();
     },
 };
 </script>
@@ -142,6 +144,7 @@ button:hover {
     align-items: center;
     font-size: 16px;
     cursor: pointer;
+    width: 100px;
 }
 
 input[type="checkbox"] {
@@ -149,5 +152,15 @@ input[type="checkbox"] {
     transform: scale(1.2);
     /* 放大复选框大小 */
     cursor: pointer;
+}
+
+.hsettings-container.light {
+    background-color: #ffffff;
+    color: #000000;
+}
+
+.settings-container.dark {
+    background-color: #1a1a1a;
+    color: #ffffff;
 }
 </style>

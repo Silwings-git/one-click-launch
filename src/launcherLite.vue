@@ -1,5 +1,5 @@
 <template>
-    <div class="container">
+    <div :class="['container',theme]">
         <div class="row">
             <span class="row-name" :title="data.name"> {{ data.name }}</span>
             <span class="move-buttons">
@@ -42,6 +42,7 @@ export default {
         return {
             data: this.launcherData,
             isLaunching: false, // 是否正在启动
+            theme:'light'
         };
     },
     methods: {
@@ -61,12 +62,21 @@ export default {
                 this.isLaunching = false; // 恢复按钮状态
             }
         },
+        async reloadSettings() {
+            const themeSetting = await invoke("read_setting", { key: "theme" });
+            if (themeSetting && themeSetting.value) {
+                this.theme = themeSetting.value;
+            }
+        }
     },
     computed: {
         formattedResourceNames() {
             return this.data.resources.map(resource => resource.name).join('\n');
         }
-    }
+    },
+    mounted() {
+        this.reloadSettings();
+    },
 };
 </script>
 
@@ -78,6 +88,16 @@ export default {
     border: 1px solid #ccc;
     padding: 10px;
     background-color: #f9f9f9;
+}
+
+.container.light {
+  background-color: #ffffff;
+  color: #000000;
+}
+
+.container.dark {
+  background-color: #1a1a1a;
+  color: #ffffff;
 }
 
 .row {

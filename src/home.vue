@@ -1,6 +1,6 @@
 <template>
-  <div class="home">
-    <div class="topbar">
+  <div :class="['home', theme]" style="margin: 0; padding: 0;">
+    <div :class="['topbar', theme]">
       <button class="create-launcher-button" @click="createLauncher">创建启动器</button>
       <div class="topbar-button">
         <div class="edit-mode-container">
@@ -18,13 +18,13 @@
       <launcher v-for="(item, index) in launchers" :key="index" :launcherData="item"
         @launcher-updated="refreshLaunchers" @launcher-moved="moveLauncher" @settings-updated="refreshLaunchers" />
     </div>
-    <div class="launcher-lite-container" v-if="!editMode">
+    <div :class="['launcher-lite-container', theme]" v-if="!editMode">
       <launcher-lite v-for="(item, index) in launchers" :key="index" :launcherData="item"
         class="launcher-lite-container-item" @launcher-updated="refreshLaunchers" @launcher-moved="moveLauncher" />
     </div>
     <!-- 悬浮框 -->
-    <div v-if="showSetting" class="modal-overlay" @click="closeSetting">
-      <div class="modal-content" @click.stop>
+    <div v-if="showSetting" :class="['modal-overlay', theme]" @click="closeSetting">
+      <div :class="['modal-content',theme]" @click.stop>
         <span class="close-btn" @click="closeSetting">&times;</span>
         <settings @settings-updated="reloadSettings" />
       </div>
@@ -52,7 +52,8 @@ export default {
     return {
       launchers: [], // 用于存储从后端获取的启动器列表
       editMode: true,
-      showSetting: false
+      showSetting: false,
+      theme: 'light' // 默认主题为亮色
     };
   },
   methods: {
@@ -127,8 +128,11 @@ export default {
       this.showSetting = false;
     },
     async reloadSettings() {
-      // todo
-    }
+      const themeSetting = await invoke("read_setting", { key: "theme" });
+      if (themeSetting?.value) {
+        this.theme = themeSetting.value;
+      }
+    },
   },
   mounted() {
     this.reflush_tray();
@@ -230,6 +234,30 @@ export default {
   box-sizing: border-box;
 }
 
+.home.light,
+.modal-content.light,
+.topbar.light {
+  background-color: #ffffff;
+  color: #000000;
+}
+
+.home.dark,
+.modal-content.dark,
+.topbar.dark {
+  background-color: #1a1a1a;
+  color: #ffffff;
+}
+
+.modal-overlay.light {
+  background-color:rgba(255, 255, 255, 0.8);
+  color: #000000;
+}
+
+.modal-overlay.dark {
+  background-color: rgba(0, 0, 0, 0.5); /* 50% 透明度的黑色 */
+  color: #ffffff;
+}
+
 .create-launcher-button {
   background-color: #007bff;
   /* 按钮背景色 */
@@ -258,7 +286,6 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
   font-family: Arial, sans-serif;
 }
 
@@ -344,5 +371,4 @@ button:hover {
 .close-btn:hover {
   color: #000;
 }
-
 </style>
