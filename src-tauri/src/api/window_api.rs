@@ -19,7 +19,7 @@ pub fn hide_window_sync(app: AppHandle) -> Result<(), OneClickLaunchError> {
 
 /// 刷新系统图标菜单
 #[tauri::command]
-pub async fn reflush_tray(app: AppHandle) -> Result<(), OneClickLaunchError> {
+pub async fn refresh_tray(app: AppHandle) -> Result<(), OneClickLaunchError> {
     // 获取全局状态
     let window_context: State<'_, WindowContext> = app.state();
     let database_manager: State<'_, DatabaseManager> = app.state();

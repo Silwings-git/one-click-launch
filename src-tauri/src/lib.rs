@@ -233,7 +233,7 @@ pub async fn run() -> Result<()> {
             setting_api::save_setting,
             setting_api::read_setting,
             setting_api::read_all_setting,
-            window_api::reflush_tray,
+            window_api::refresh_tray,
             window_api::change_windows_theme,
         ])
         .run(tauri::generate_context!())
