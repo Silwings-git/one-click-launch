@@ -185,6 +185,7 @@ pub async fn run() -> Result<()> {
             setting_api::read_setting,
             setting_api::read_all_setting,
             window_api::reflush_tray,
+            window_api::change_windows_theme,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

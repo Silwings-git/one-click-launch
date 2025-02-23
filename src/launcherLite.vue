@@ -1,5 +1,5 @@
 <template>
-    <div :class="['container',theme]">
+    <div class="container">
         <div class="row">
             <span class="row-name" :title="data.name"> {{ data.name }}</span>
             <span class="move-buttons">
@@ -42,7 +42,6 @@ export default {
         return {
             data: this.launcherData,
             isLaunching: false, // 是否正在启动
-            theme:'light'
         };
     },
     methods: {
@@ -61,12 +60,6 @@ export default {
             } finally {
                 this.isLaunching = false; // 恢复按钮状态
             }
-        },
-        async reloadSettings() {
-            const themeSetting = await invoke("read_setting", { key: "theme" });
-            if (themeSetting && themeSetting.value) {
-                this.theme = themeSetting.value;
-            }
         }
     },
     computed: {
@@ -75,7 +68,6 @@ export default {
         }
     },
     mounted() {
-        this.reloadSettings();
     },
 };
 </script>
@@ -91,13 +83,13 @@ export default {
 }
 
 .container.light {
-  background-color: #ffffff;
-  color: #000000;
+    background-color: #ffffff;
+    color: #000000;
 }
 
 .container.dark {
-  background-color: #1a1a1a;
-  color: #ffffff;
+    background-color: rgba(30, 31, 34);
+  color: rgba(188, 190, 196);
 }
 
 .row {
@@ -143,54 +135,54 @@ export default {
 }
 
 .row span {
-    overflow: hidden;
     /* 隐藏溢出内容 */
-    text-overflow: ellipsis;
+    overflow: hidden;
     /* 超出部分显示省略号 */
-    white-space: nowrap;
+    text-overflow: ellipsis;
     /* 不换行 */
+    white-space: nowrap;
 }
 
 .launch-button {
-    background-color: #28a745;
     /* 绿色背景 */
-    color: white;
+    background-color: #28a745;
     /* 白色文字 */
+    color: white;
     border: none;
-    width: 100%;
     /* 占满宽度 */
-    height: 50px;
+    width: 100%;
     /* 高度 */
-    font-size: 18px;
+    height: 50px;
     /* 较大的文字 */
-    font-weight: bold;
+    font-size: 18px;
     /* 加粗文字 */
-    border-radius: 8px;
+    font-weight: bold;
     /* 圆角 */
+    border-radius: 8px;
     cursor: pointer;
     margin-top: 0px;
-    margin-bottom: 0px;
     /* 与上方内容保持距离 */
-    transition: background-color 0.3s ease, transform 0.2s ease;
+    margin-bottom: 0px;
     /* 平滑过渡效果 */
+    transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
 .launch-button:hover {
-    background-color: #218838;
     /* 鼠标悬浮时更深的绿色 */
-    transform: scale(1.05);
+    background-color: #218838;
     /* 鼠标悬浮时放大效果 */
+    transform: scale(1.05);
 }
 
 .launch-button:active {
-    background-color: #1e7e34;
     /* 点击时更深的绿色 */
-    transform: scale(0.95);
+    background-color: #1e7e34;
     /* 点击时缩小效果 */
+    transform: scale(0.95);
 }
 
 .spacer {
+    /* 启动按钮放到最底部 */
     flex-grow: 1;
-    /* This pushes the launch button to the bottom */
 }
 </style>

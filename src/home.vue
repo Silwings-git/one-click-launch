@@ -1,6 +1,6 @@
 <template>
-  <div :class="['home', theme]" style="margin: 0; padding: 0;">
-    <div :class="['topbar', theme]">
+  <div class="home" style="margin: 0; padding: 0;">
+    <div class="topbar">
       <button class="create-launcher-button" @click="createLauncher">创建启动器</button>
       <div class="topbar-button">
         <div class="edit-mode-container">
@@ -20,13 +20,14 @@
     </div>
     <div :class="['launcher-lite-container', theme]" v-if="!editMode">
       <launcher-lite v-for="(item, index) in launchers" :key="index" :launcherData="item"
-        class="launcher-lite-container-item" @launcher-updated="refreshLaunchers" @launcher-moved="moveLauncher" />
+        :class="['launcher-lite-container-item', theme]" @launcher-updated="refreshLaunchers"
+        @launcher-moved="moveLauncher" />
     </div>
     <!-- 悬浮框 -->
     <div v-if="showSetting" :class="['modal-overlay', theme]" @click="closeSetting">
-      <div :class="['modal-content',theme]" @click.stop>
+      <div :class="['modal-content', theme]" @click.stop>
         <span class="close-btn" @click="closeSetting">&times;</span>
-        <settings @settings-updated="reloadSettings" />
+        <settings />
       </div>
     </div>
   </div>
@@ -39,6 +40,7 @@ import Settings from './Settings.vue';
 import { invoke } from "@tauri-apps/api/core";
 import { useToast } from "vue-toastification";
 import { listen } from '@tauri-apps/api/event';
+import { inject } from 'vue';
 
 const toast = useToast()
 
@@ -50,10 +52,16 @@ export default {
   },
   data() {
     return {
-      launchers: [], // 用于存储从后端获取的启动器列表
+      // 用于存储从后端获取的启动器列表
+      launchers: [],
       editMode: true,
       showSetting: false,
-      theme: 'light' // 默认主题为亮色
+    };
+  },
+  setup() {
+    const theme = inject('theme');
+    return {
+      theme,
     };
   },
   methods: {
@@ -75,10 +83,10 @@ export default {
       this.refreshLaunchers();
     },
     async refreshLaunchers() {
-      const data = await invoke("query_launchers"); // 调用 Tauri 后端命令
-      this.launchers = []; // 先清空数组
+      const data = await invoke("query_launchers"); 
+      this.launchers = []; 
       this.$nextTick(() => {
-        this.launchers = [...data]; // 再赋值
+        this.launchers = [...data]; 
       });
     },
     // type 0->左移,1-右移
@@ -127,16 +135,9 @@ export default {
     async closeSetting() {
       this.showSetting = false;
     },
-    async reloadSettings() {
-      const themeSetting = await invoke("read_setting", { key: "theme" });
-      if (themeSetting?.value) {
-        this.theme = themeSetting.value;
-      }
-    },
   },
   mounted() {
     this.reflush_tray();
-    this.reloadSettings();
     this.fetchEditModeStatus();
     // 页面加载时刷新 Launcher 列表
     this.refreshLaunchers();
@@ -159,12 +160,12 @@ export default {
 /* 容器样式 */
 .launcher-container {
   display: flex;
-  flex-direction: row;
   /* 水平排列 */
-  gap: 10px;
+  flex-direction: row;
   /* 每个 Launcher 之间的间距 */
-  overflow-x: auto;
+  gap: 10px;
   /* 开启水平滚动 */
+  overflow-x: auto;
   padding: 10px 10px 10px 10px;
   scrollbar-width: auto;
   /* 调整滚动条宽度 */
@@ -173,24 +174,23 @@ export default {
 }
 
 .launcher-container::-webkit-scrollbar {
-  height: 10px;
   /* 滚动条高度 */
+  height: 10px;
 }
 
 .launcher-container::-webkit-scrollbar-thumb {
-  background-color: #8B8B8B;
   /* 滚动条颜色 */
-  border-radius: 5px;
+  background-color: #8B8B8B;
   /* 滚动条圆角 */
+  border-radius: 5px;
 }
 
 /* 确保每个 launcher 的宽度固定 */
 .launcher-container>* {
   flex: 0 0 300px;
   width: 0;
-  /* 宽度固定为 300px，不随容器调整 */
-  height: 500px;
   /* 高度固定为 500px，和原始组件一致 */
+  height: 500px;
   padding: 10px 10px 10px 10px;
 }
 
@@ -201,61 +201,64 @@ export default {
   height: 100%;
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-start;
   /* 水平排列并均匀分布 */
-  align-content: flex-start;
+  justify-content: flex-start;
   /* 控制多行间的对齐方式 */
+  align-content: flex-start;
   gap: 10px;
   overflow-y: auto;
 }
 
 .launcher-lite-container-item {
   aspect-ratio: 2 / 1;
-  flex: calc(25%);
   /* 宽度为容器的四分之一，减去间距 */
+  flex: calc(25%);
 }
 
 /* 顶部栏样式 */
 .topbar {
   width: 100%;
-  height: 50px;
   /* 顶部栏高度 */
-  background-color: #f8f9fa;
+  height: 50px;
   /* 浅灰背景色 */
-  border-bottom: 1px solid #ddd;
+  /* background-color: #f8f9fa; */
   /* 分隔线 */
+  border-bottom: 1px solid #ddd;
   display: flex;
   align-items: center;
-  /* justify-content: start; */
-  justify-content: space-between;
   /* 左对齐按钮 */
-  padding: 0 10px;
+  justify-content: space-between;
   /* 内边距 */
+  padding: 0 10px;
   box-sizing: border-box;
 }
 
 .home.light,
-.modal-content.light,
-.topbar.light {
+.topbar.light,
+.launcher-lite-container.light,
+.launcher-lite-container-item.light,
+.modal-content.light {
   background-color: #ffffff;
   color: #000000;
 }
 
 .home.dark,
-.modal-content.dark,
-.topbar.dark {
-  background-color: #1a1a1a;
-  color: #ffffff;
+.topbar.dark,
+.launcher-lite-container.dark,
+.launcher-lite-container-item.dark,
+.modal-content.dark {
+  background-color: rgba(30, 31, 34);
+  color: rgba(188, 190, 196);
 }
 
 .modal-overlay.light {
-  background-color:rgba(255, 255, 255, 0.8);
+  background-color: rgba(255, 255, 255, 0.5);
   color: #000000;
 }
 
 .modal-overlay.dark {
-  background-color: rgba(0, 0, 0, 0.5); /* 50% 透明度的黑色 */
-  color: #ffffff;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: rgba(188, 190, 196);
 }
 
 .create-launcher-button {
@@ -273,13 +276,13 @@ export default {
 }
 
 .create-launcher-button:hover {
-  background-color: #0056b3;
   /* 鼠标悬停背景色 */
+  background-color: #0056b3;
 }
 
 .create-launcher-button:active {
-  background-color: #003d80;
   /* 鼠标按下背景色 */
+  background-color: #003d80;
 }
 
 .edit-mode-container {
@@ -298,8 +301,8 @@ export default {
 
 input[type="checkbox"] {
   margin-right: 10px;
-  transform: scale(1.2);
   /* 放大复选框大小 */
+  transform: scale(1.2);
   cursor: pointer;
 }
 

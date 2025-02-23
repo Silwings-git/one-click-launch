@@ -1,24 +1,40 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>一键启动</title>
-  </head>
 
-  <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.ts"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>一键启动</title>
+</head>
+
+<body>
+  <div id="app"></div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+
 </html>
 
 <style>
-  html,body,#app{
+  html,
+  body,
+  #app {
     height: 100%;
     overflow: hidden;
+    /* margin: 0; */
+    /* padding: 0; */
   }
 
+
+  /* 定义主题颜色 */
+  body[theme="light"] {
+    background-color: #ffffff;
+  }
+
+  body[theme="dark"] {
+    /* background-color: #1a1a1a; */
+    background-color: rgba(43, 45, 48);
+  }
 </style>
 
 <script>
@@ -26,4 +42,10 @@
   document.addEventListener('contextmenu', (event) => {
     event.preventDefault();
   });
+
+  // 定义全局切换主题函数: 
+  window.setTheme = (theme) => {
+    document.body.setAttribute('theme', theme);
+  };
+
 </script>

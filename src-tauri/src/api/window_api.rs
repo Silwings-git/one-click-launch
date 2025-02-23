@@ -1,5 +1,5 @@
 use tauri::{
-    AppHandle, Manager, State,
+    AppHandle, Manager, State, Theme,
     menu::{MenuBuilder, MenuItem},
 };
 
@@ -40,5 +40,18 @@ pub async fn reflush_tray(app: AppHandle) -> Result<(), OneClickLaunchError> {
 
     // 设置菜单到托盘图标
     window_context.tray_icon.set_menu(Some(menu))?;
+    Ok(())
+}
+
+/// 修改窗口主题
+#[tauri::command]
+pub async fn change_windows_theme(app: AppHandle, theme: &str) -> Result<(), OneClickLaunchError> {
+    if let Some(window) = app.get_webview_window("main") {
+        window.set_theme(match theme {
+            "dark" => Some(Theme::Dark),
+            "light" => Some(Theme::Light),
+            _ => None,
+        })?;
+    }
     Ok(())
 }

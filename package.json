@@ -16,6 +16,7 @@
     "@tauri-apps/plugin-dialog": "^2.2.0",
     "@tauri-apps/plugin-os": "^2.2.0",
     "@tauri-apps/plugin-shell": "^2",
+    "pinia": "^3.0.1",
     "vue": "^3.3.4",
     "vue-toastification": "^2.0.0-rc.5"
   },

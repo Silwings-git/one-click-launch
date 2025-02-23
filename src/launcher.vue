@@ -303,8 +303,8 @@ hr {
     display: flex;
     justify-content: start;
     align-items: center;
-    gap: 20px;
     /* 给按钮添加间距 */
+    gap: 20px;
 }
 
 .move-launcher:hover,
@@ -341,83 +341,83 @@ hr {
 }
 
 .data-text span {
-    overflow: hidden;
     /* 隐藏溢出内容 */
-    text-overflow: ellipsis;
+    overflow: hidden;
     /* 超出部分显示省略号 */
-    white-space: nowrap;
+    text-overflow: ellipsis;
     /* 不换行 */
+    white-space: nowrap;
 }
 
 .delete-button,
 .delete-launcher {
-    background-color: transparent;
     /* 无背景色 */
-    color: #BFBFBF;
+    background-color: transparent;
     /* 默认蓝色 */
+    color: #BFBFBF;
     border: none;
-    width: 30px;
     /* 固定按钮大小 */
+    width: 30px;
     height: 30px;
-    border-radius: 50%;
     /* 圆形按钮 */
+    border-radius: 50%;
     cursor: pointer;
     display: flex;
     justify-content: center;
     align-items: center;
     padding: 0;
-    transition: color 0.2s ease;
     /* 平滑过渡 */
+    transition: color 0.2s ease;
 }
 
 .delete-button:hover,
 .delete-launcher:hover {
-    color: #dc3545;
     /* 鼠标悬浮时变为红色 */
+    color: #dc3545;
 }
 
 .launch-button {
-    background-color: #28a745;
     /* 绿色背景 */
-    color: white;
+    background-color: #28a745;
     /* 白色文字 */
+    color: white;
     border: none;
-    width: 100%;
     /* 占满宽度 */
-    height: 50px;
+    width: 100%;
     /* 高度 */
-    font-size: 18px;
+    height: 50px;
     /* 较大的文字 */
-    font-weight: bold;
+    font-size: 18px;
     /* 加粗文字 */
-    border-radius: 8px;
+    font-weight: bold;
     /* 圆角 */
+    border-radius: 8px;
     cursor: pointer;
-    margin-top: 10px;
     /* 与上方内容保持距离 */
-    transition: background-color 0.3s ease, transform 0.2s ease;
+    margin-top: 10px;
     /* 平滑过渡效果 */
+    transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
 .launch-button:hover {
-    background-color: #218838;
     /* 鼠标悬浮时更深的绿色 */
-    transform: scale(1.05);
+    background-color: #218838;
     /* 鼠标悬浮时放大效果 */
+    transform: scale(1.05);
 }
 
 .launch-button:active {
-    background-color: #1e7e34;
     /* 点击时更深的绿色 */
-    transform: scale(0.95);
+    background-color: #1e7e34;
     /* 点击时缩小效果 */
+    transform: scale(0.95);
 }
 
 /* 按钮容器 */
 .button-container {
     display: flex;
-    gap: 10px;
     /* 设置按钮之间的间距 */
+    gap: 10px;
 }
 
 .dialog-overlay {

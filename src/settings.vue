@@ -1,10 +1,9 @@
 <template>
-    <div :class="['settings-container', theme]">
+    <div class="settings-container">
         <h2 class="setting-title">设置</h2>
-        <!-- 主题切换 -->
         <div class="setting-item">
             <label for="theme-select">主题:</label>
-            <select id="theme-select" v-model="theme" @change="changeTheme">
+            <select v-model="theme" @change="changeTheme" :class="['theme-select', theme]">
                 <option value="light">浅色主题</option>
                 <option value="dark">深色主题</option>
             </select>
@@ -16,7 +15,7 @@
             </label>
         </div>
 
-        <!-- 保存按钮 -->
+        <!-- 按钮 -->
         <button @click="fetchAutoLaunchStatus">刷新</button>
 
     </div>
@@ -25,34 +24,47 @@
 <script>
 import { enable, isEnabled, disable } from '@tauri-apps/plugin-autostart';
 import { invoke } from "@tauri-apps/api/core";
+import { onMounted, inject } from 'vue';
 
 export default {
     data() {
         return {
-            // selectedTheme: 'light', // 默认主题
-            notificationsEnabled: true, // 默认开启通知
             // 开机启动状态
             autoLaunch: false,
             // 开机启动锁
             toggleLock: false,
-            theme: 'light' // 默认主题为亮色
+        };
+    },
+    setup() {
+        const theme = inject('theme');
+
+        // 从后端加载主题
+        const loadTheme = async () => {
+            const savedTheme = await invoke("read_setting", { key: "theme" });
+            if (savedTheme?.value) {
+                theme.value = savedTheme.value;
+                window.setTheme(savedTheme.value);
+            }
+        };
+
+        // 在组件挂载时加载主题
+        onMounted(() => {
+            loadTheme();
+        });
+
+        // 定义切换主题的方法
+        const changeTheme = async () => {
+            await invoke("save_setting", { key: "theme", value: theme.value });
+            await invoke("change_windows_theme", { theme: theme.value });
+            window.setTheme(theme.value);
+        };
+
+        return {
+            theme,
+            changeTheme,
         };
     },
     methods: {
-        // 切换主题
-        async changeTheme() {
-            await invoke("save_setting", { key: "theme", value: this.theme });
-            // this.theme = this.selectedTheme;
-            this.$emit("settings-updated");
-        },
-        // 切换通知开关
-        toggleNotifications() {
-            if (this.notificationsEnabled) {
-                console.log('通知已开启');
-            } else {
-                console.log('通知已关闭');
-            }
-        },
         // 切换开机启动状态
         async toggleAutoLaunch() {
             if (this.toggleLock) {
@@ -83,34 +95,26 @@ export default {
                 console.error("Failed to fetch auto launch status:", error);
             }
         },
-        async reloadSettings() {
-            const themeSetting = await invoke("read_setting", { key: "theme" });
-            if (themeSetting?.value) {
-                this.theme = themeSetting.value;
-            }
-        }
     },
     mounted() {
-        // 初始化时获取开机启动状态
         this.fetchAutoLaunchStatus();
-        this.reloadSettings();
     },
 };
 </script>
 
 <style scoped>
 .settings-container {
-    max-width: 500px;
     /* 最大宽度 */
-    max-height: 400px;
+    max-width: 500px;
     /* 最大高度 */
-    overflow-y: auto;
+    max-height: 400px;
     /* 纵向滚动条 */
+    overflow-y: auto;
     padding: 20px;
-    border: 1px solid #ccc;
     /* 可选：添加边框 */
-    border-radius: 8px;
+    border: 1px solid #ccc;
     /* 可选：圆角 */
+    border-radius: 8px;
 }
 
 
@@ -154,13 +158,13 @@ input[type="checkbox"] {
     cursor: pointer;
 }
 
-.hsettings-container.light {
+.theme-select.light {
     background-color: #ffffff;
     color: #000000;
 }
 
-.settings-container.dark {
-    background-color: #1a1a1a;
-    color: #ffffff;
+.theme-select.dark {
+    background-color: rgba(30, 31, 34);
+    color: rgba(188, 190, 196);
 }
 </style>
