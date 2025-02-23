@@ -28,6 +28,7 @@
 <script>
 import { invoke } from "@tauri-apps/api/core";
 import { useToast } from "vue-toastification";
+import { ref, onMounted, computed } from 'vue';
 
 const toast = useToast()
 
@@ -38,37 +39,40 @@ export default {
             required: true, // 确保传入数据
         },
     },
-    data() {
-        return {
-            data: this.launcherData,
-            isLaunching: false, // 是否正在启动
+    setup(props, { emit }) {
+
+        const isLaunching = ref(false);
+
+        const moveLauncher = (type) => {
+            emit("launcher-moved", props.launcherData.id, type);
         };
-    },
-    methods: {
-        moveLauncher(type) {
-            this.$emit("launcher-moved", this.data.id, type);
-        },
-        async launch() {
-            this.isLaunching = true;
+        const launch = async () => {
+            isLaunching.value = true;
             try {
-                await invoke("launch", { launcherId: this.data.id });
+                await invoke("launch", { launcherId: props.launcherData.id });
                 toast.success("启动成功！所有内容已激活！");
                 await invoke("hide_window", {});
             } catch (error) {
                 console.error("启动失败:", error);
                 toast.error("启动失败！");
             } finally {
-                this.isLaunching = false; // 恢复按钮状态
+                isLaunching.value = false; // 恢复按钮状态
             }
-        }
-    },
-    computed: {
-        formattedResourceNames() {
-            return this.data.resources.map(resource => resource.name).join('\n');
-        }
-    },
-    mounted() {
-    },
+        };
+
+        const formattedResourceNames = computed(() => {
+            return props.launcherData.resources.map(resource => resource.name).join('\n');
+        });
+
+        return {
+            data: props.launcherData,
+            // 是否正在启动
+            isLaunching,
+            moveLauncher,
+            launch,
+            formattedResourceNames
+        };
+    }
 };
 </script>
 
@@ -89,7 +93,7 @@ export default {
 
 .container.dark {
     background-color: rgba(30, 31, 34);
-  color: rgba(188, 190, 196);
+    color: rgba(188, 190, 196);
 }
 
 .row {

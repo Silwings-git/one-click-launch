@@ -82,6 +82,7 @@ import { confirm, message, open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import { useToast } from "vue-toastification";
 import { platform } from '@tauri-apps/plugin-os'
+import { ref, reactive, onMounted, nextTick, onBeforeMount } from 'vue';
 
 const toast = useToast()
 
@@ -92,66 +93,64 @@ export default {
             required: true, // 确保传入数据
         },
     },
-    data() {
-        return {
-            data: this.launcherData, // 初始化内容
-            dropdownVisible: false, // 控制下拉菜单的显示
-            showDialog: false, // 控制网址弹框的显示
-            newLauncherName: "", // 临时存储的新启动器名称
-            isEditing: false, // 是否处于编辑模式
-            addUrlName: "",
-            addUrlContent: "",
-            addUrlNamePlaceholder: "网页",
-            isLaunching: false, // 是否正在启动
-            editingResourceState: new Map(),
-            newResourceName: "",
+    setup(props, { emit }) {
+
+        // 控制下拉菜单的显示
+        const dropdownVisible = ref(false);
+        // 控制网址弹框的显示
+        const showDialog = ref(false);
+        // 临时存储的新启动器名称
+        const newLauncherName = ref("");
+        // 是否处于编辑模式
+        const isEditing = ref(false);
+        const addUrlName = ref("");
+        const addUrlContent = ref("");
+        const addUrlNamePlaceholder = ref("网页");
+        // 是否正在启动
+        const isLaunching = ref(false);
+        const editingResourceState = ref(new Map());
+        const newResourceName = ref("");
+        const launcherNameInputRef = ref(null);
+        const resourceNameInputRef = ref(null);
+        const debouncedLaunch = ref(null);
+
+        const editLauncherName = () => {
+            isEditing.value = true; // 进入编辑模式
+            newLauncherName.value = props.launcherData.name; // 预填当前名称
+            nextTick(() => {
+                launcherNameInputRef.value && launcherNameInputRef.value.focus();
+            });
         };
-    },
-    created() {
-        // 包装 launch 方法为防抖函数
-        this.debouncedLaunch = this.debounce(this.launch, 2000); // 2秒防抖
-    },
-    methods: {
-        editLauncherName() {
-            this.isEditing = true; // 进入编辑模式
-            this.newLauncherName = this.data.name; // 预填当前名称
-            this.$nextTick(() => {
-                // 自动聚焦到输入框
-                const input = this.$el.querySelector(".name-input");
-                input && input.focus();
-            });
-        },
-        async saveLauncherName() {
-            if (this.newLauncherName.trim()) {
-                this.launcherName = this.newLauncherName.trim(); // 保存修改后的名称
+        const saveLauncherName = async () => {
+            if (newLauncherName.value.trim()) {
+                newLauncherName.value = newLauncherName.value.trim(); // 保存修改后的名称
             }
-            await invoke("modify_launcher_name", { launcherId: this.data.id, name: this.launcherName });
-            this.isEditing = false; // 退出编辑模式
-            this.$emit("launcher-updated", this.data.id);
-        },
-        editResourceName(item) {
-            this.editingResourceState.set(item.id, true); // 进入编辑模式
-            this.newResourceName = item.name; // 预填当前名称
-            this.$nextTick(() => {
+            await invoke("modify_launcher_name", { launcherId: props.launcherData.id, name: newLauncherName.value });
+            isEditing.value = false; // 退出编辑模式
+            emit("launcher-updated", props.launcherData.id);
+        };
+        const editResourceName = (item) => {
+            editingResourceState.value.set(item.id, true); // 进入编辑模式
+            newResourceName.value = item.name; // 预填当前名称
+            nextTick(() => {
                 // 自动聚焦到输入框
-                const input = this.$el.querySelector(".name-input");
-                input && input.focus();
+                resourceNameInputRef.value && resourceNameInputRef.value.focus();
             });
-        },
-        async saveResourceName(item) {
-            if (this.newResourceName.trim()) {
-                const trimName = this.newResourceName.trim();
+        };
+        const saveResourceName = async (item) => {
+            if (newResourceName.value.trim()) {
+                const trimName = newResourceName.value.trim();
                 if (item.name === trimName) {
-                    this.editingResourceState.set(item.id, false); // 退出编辑模式
+                    editingResourceState.value.set(item.id, false); // 退出编辑模式
                     return;
                 }
-                this.newResourceName = trimName; // 保存修改后的名称
+                newResourceName.value = trimName; // 保存修改后的名称
             }
-            await invoke("modify_resource_name", { resourceId: item.id, name: this.newResourceName });
-            this.editingResourceState.set(item.id, false); // 退出编辑模式
-            this.$emit("launcher-updated", this.data.id);
-        },
-        async addRow(directory) {
+            await invoke("modify_resource_name", { resourceId: item.id, name: newResourceName.value });
+            editingResourceState.value.set(item.id, false); // 退出编辑模式
+            emit("launcher-updated", props.launcherData.id);
+        };
+        const addRow = async (directory) => {
             try {
 
                 let defaultPath = ""; // 默认不设置路径
@@ -173,76 +172,109 @@ export default {
 
                 if (filePath) {
                     // 调用后端存储路径的命令
-                    await invoke("add_resource", { launcherId: this.data.id, path: filePath });
-                    this.$emit("launcher-updated", this.data.id);
+                    await invoke("add_resource", { launcherId: props.launcherData.id, path: filePath });
+                    emit("launcher-updated", props.launcherData.id);
                 }
             } catch (error) {
                 console.error("文件选择错误:", error);
             }
-        },
-        async deleteRow(resourceId) {
+        };
+        const deleteRow = async (resourceId) => {
             await invoke("delete_resource", { resourceId: resourceId })
-            this.$emit("launcher-updated", this.data.id);
-        },
-        async deleteLauncher() {
+            emit("launcher-updated", props.launcherData.id);
+        };
+        const deleteLauncher = async () => {
             const userConfirmed = await confirm(
                 "您确定要删除这一行吗？此操作无法撤销。",
                 { title: "确认删除", type: "question" }
             );
             if (userConfirmed) {
-                await invoke("delete_launcher", { "launcherId": this.data.id });
-                this.$emit("launcher-updated", this.data.id);
+                await invoke("delete_launcher", { "launcherId": props.launcherData.id });
+                emit("launcher-updated", props.launcherData.id);
             }
-        },
-        async copyLauncher() {
-            await invoke("copy_launcher", { launcherId: this.data.id });
-            this.$emit("launcher-updated", this.data.id);
-        },
-        async launch() {
-            this.isLaunching = true;
+        };
+        const copyLauncher = async () => {
+            await invoke("copy_launcher", { launcherId: props.launcherData.id });
+            emit("launcher-updated", props.launcherData.id);
+        };
+        const launch = async () => {
+            isLaunching.value = true;
             try {
-                await invoke("launch", { launcherId: this.data.id });
+                await invoke("launch", { launcherId: props.launcherData.id });
                 toast.success("启动成功！所有内容已激活！");
                 await invoke("hide_window", {});
             } catch (error) {
                 console.error("启动失败:", error);
                 toast.error("启动失败！");
             } finally {
-                this.isLaunching = false; // 恢复按钮状态
+                isLaunching.value = false; // 恢复按钮状态
             }
-        },
-        showAddUrlDialog() {
-            this.showDialog = true; // 打开添加网址的对话框
-            this.dropdownVisible = false; // 关闭下拉菜单
-        },
-        async addUrl() {
-            if (this.addUrlContent) {
-                let urlName = this.addUrlName;
+        };
+        const showAddUrlDialog = () => {
+            showDialog.value = true; // 打开添加网址的对话框
+            dropdownVisible.value = false; // 关闭下拉菜单
+        };
+        const addUrl = async () => {
+            if (addUrlContent.value) {
+                let urlName = addUrlName.value;
                 if (!urlName) {
-                    urlName = this.addUrlNamePlaceholder;
+                    urlName = addUrlNamePlaceholder.value;
                 }
-                await invoke("add_resource", { launcherId: this.data.id, name: urlName, path: this.addUrlContent });
-                this.$emit("launcher-updated", this.data.id);
-                await this.closeDialog();
+                await invoke("add_resource", { launcherId: props.launcherData.id, name: urlName, path: addUrlContent.value });
+                emit("launcher-updated", props.launcherData.id);
+                await closeDialog();
             } else {
                 await message("请输入名称和网址！");
             }
-        },
-        async closeDialog() {
-            this.showDialog = false; // 关闭对话框
-            this.addUrlName = "";
-            this.addUrlContent = "";
-        },
-        moveLauncher(type) {
-            this.$emit("launcher-moved", this.data.id, type);
-        },
-        debounce(func, delay) {
+        };
+        const closeDialog = async () => {
+            showDialog.value = false; // 关闭对话框
+            addUrlName.value = "";
+            addUrlContent.value = "";
+        };
+        const moveLauncher = (type) => {
+            emit("launcher-moved", props.launcherData.id, type);
+        };
+        const debounce = (func, delay) => {
             let timer;
             return function (...args) {
                 if (timer) clearTimeout(timer);
                 timer = setTimeout(() => func.apply(this, args), delay);
             };
-        },
+        };
+        onBeforeMount(() => {
+            // 包装 launch 方法为防抖函数
+            debouncedLaunch.value = debounce(launch, 2000); // 2秒防抖
+        });
+
+        return {
+            data: props.launcherData,
+            dropdownVisible,
+            showDialog,
+            newLauncherName,
+            isEditing,
+            addUrlName,
+            addUrlContent,
+            addUrlNamePlaceholder,
+            isLaunching,
+            editingResourceState,
+            newResourceName,
+            editLauncherName,
+            saveLauncherName,
+            editResourceName,
+            saveResourceName,
+            addRow,
+            deleteRow,
+            deleteLauncher,
+            copyLauncher,
+            launch,
+            showAddUrlDialog,
+            addUrl,
+            closeDialog,
+            moveLauncher,
+            debounce,
+            debouncedLaunch
+        };
     }
 };
 </script>

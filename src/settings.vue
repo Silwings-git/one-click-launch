@@ -15,8 +15,17 @@
             </label>
         </div>
 
+        <div class="setting-item">
+            <label for="auto-start-launcher-select">自动启动编组:</label>
+            <select id="auto-start-launcher-select" v-model="autoStartLaunchers" multiple>
+                <option v-for="item in launchers" :key="item.id" :value="item.id">
+                    {{ item.name }}
+                </option>
+            </select>
+        </div>
+
         <!-- 按钮 -->
-        <button @click="fetchAutoLaunchStatus">刷新</button>
+        <button >刷新</button>
 
     </div>
 </template>
@@ -24,19 +33,15 @@
 <script>
 import { enable, isEnabled, disable } from '@tauri-apps/plugin-autostart';
 import { invoke } from "@tauri-apps/api/core";
-import { onMounted, inject } from 'vue';
+import { onMounted, inject,ref } from 'vue';
 
 export default {
-    data() {
-        return {
-            // 开机启动状态
-            autoLaunch: false,
-            // 开机启动锁
-            toggleLock: false,
-        };
-    },
-    setup() {
+    setup(props, { emit }) {
         const theme = inject('theme');
+        const autoLaunch = ref(false);
+        const toggleLock = ref(false);
+        const launchers = ref([]);
+        const autoStartLaunchers = ref([]);
 
         // 从后端加载主题
         const loadTheme = async () => {
@@ -47,11 +52,6 @@ export default {
             }
         };
 
-        // 在组件挂载时加载主题
-        onMounted(() => {
-            loadTheme();
-        });
-
         // 定义切换主题的方法
         const changeTheme = async () => {
             await invoke("save_setting", { key: "theme", value: theme.value });
@@ -59,18 +59,12 @@ export default {
             window.setTheme(theme.value);
         };
 
-        return {
-            theme,
-            changeTheme,
-        };
-    },
-    methods: {
         // 切换开机启动状态
-        async toggleAutoLaunch() {
-            if (this.toggleLock) {
+        const toggleAutoLaunch = async () => {
+            if (toggleLock.value) {
                 return; // 如果已有任务在执行，直接返回
             }
-            this.toggleLock = true;
+            toggleLock.value = true;
             try {
                 if (await isEnabled()) {
                     await disable();
@@ -78,27 +72,39 @@ export default {
                     await enable();
                 }
                 // 更新当前状态
-                this.autoLaunch = await isEnabled();
+                autoLaunch.value = await isEnabled();
             } catch (error) {
                 console.error("Failed to toggle auto-launch:", error);
                 toast.error("调整开机启动失败！");
             } finally {
-                this.toggleLock = false; // 释放锁
-                this.$emit("settings-updated");
+                toggleLock.value = false; // 释放锁
+                emit("settings-updated");
             }
-        },
+        };
         // 获取当前开机启动状态
-        async fetchAutoLaunchStatus() {
+        const fetchAutoLaunchStatus = async () => {
             try {
-                this.autoLaunch = await isEnabled();
+                autoLaunch.value = await isEnabled();
             } catch (error) {
                 console.error("Failed to fetch auto launch status:", error);
             }
-        },
-    },
-    mounted() {
-        this.fetchAutoLaunchStatus();
-    },
+        };
+
+        // 在组件挂载时加载主题
+        onMounted(() => {
+            loadTheme();
+            fetchAutoLaunchStatus();
+        });
+
+        return {
+            theme,
+            autoLaunch,
+            launchers,
+            autoStartLaunchers,
+            changeTheme,
+            toggleAutoLaunch
+        };
+    }
 };
 </script>
 

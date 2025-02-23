@@ -1,7 +1,7 @@
 <template>
   <div class="home" style="margin: 0; padding: 0;">
     <div class="topbar">
-      <button class="create-launcher-button" @click="createLauncher">创建启动器</button>
+      <button class="create-launcher-button" @click="createLauncher">创建新编组</button>
       <div class="topbar-button">
         <div class="edit-mode-container">
           <label class="checkbox-label">
@@ -41,6 +41,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { useToast } from "vue-toastification";
 import { listen } from '@tauri-apps/api/event';
 import { inject } from 'vue';
+import { ref, reactive, onMounted,nextTick  } from 'vue';
 
 const toast = useToast()
 
@@ -50,49 +51,40 @@ export default {
     LauncherLite,
     Settings
   },
-  data() {
-    return {
-      // 用于存储从后端获取的启动器列表
-      launchers: [],
-      editMode: true,
-      showSetting: false,
-    };
-  },
   setup() {
     const theme = inject('theme');
-    return {
-      theme,
-    };
-  },
-  methods: {
-    async setupEventListener() {
+    const launchers = ref([]);
+    const editMode = ref(true);
+    const showSetting = ref(false);
+
+    const setupEventListener = async () => {
       listen('launch', async (event) => {
         console.log("收到消息: ", event);
-        await this.launch(event.payload);
+        await launch(event.payload);
       });
       listen('launcher_basic_info_updated', async (event) => {
-        await this.reflush_tray();
+        await reflush_tray();
       });
-    },
-    async launch(launcherId) {
+    };
+    const launch = async (launcherId) => {
       await invoke("launch", { launcherId: launcherId });
-    },
-    async createLauncher() {
+    };
+    const createLauncher = async () => {
       await invoke("craete_launcher");
-      this.editMode = true;
-      this.refreshLaunchers();
-    },
-    async refreshLaunchers() {
-      const data = await invoke("query_launchers"); 
-      this.launchers = []; 
-      this.$nextTick(() => {
-        this.launchers = [...data]; 
+      editMode.value = true;
+      refreshLaunchers();
+    };
+    const refreshLaunchers = async () => {
+      const data = await invoke("query_launchers");
+      launchers.value = [];
+      nextTick(() => {
+        launchers.value = [...data];
       });
-    },
+    };
     // type 0->左移,1-右移
-    async moveLauncher(launcherId, type) {
+    const moveLauncher = async (launcherId, type) => {
       // 找到目标元素的索引
-      const ids = this.launchers.map(launcher => launcher.id);
+      const ids = launchers.value.map(launcher => launcher.id);
       const index = ids.findIndex(id => id === launcherId);
 
       // 如果未找到目标元素，直接返回原数组副本
@@ -115,34 +107,51 @@ export default {
 
       await invoke("modify_launcher_sort", { launchers: sortList });
 
-      this.refreshLaunchers();
-    },
-    async toggleEditMode() {
-      await invoke("save_setting", { key: "editMode", value: this.editMode ? "true" : "false" })
-      this.fetchEditModeStatus();
-    },
+      refreshLaunchers();
+    };
+    const toggleEditMode = async () => {
+      await invoke("save_setting", { key: "editMode", value: editMode.value ? "true" : "false" })
+      fetchEditModeStatus();
+    };
     // 获取当前编辑模式设置
-    async fetchEditModeStatus() {
+    const fetchEditModeStatus = async () => {
       const em = await invoke("read_setting", { key: "editMode" })
-      this.editMode = em == null || em.value === "true";
-    },
-    async reflush_tray() {
+      editMode.value = em == null || em.value === "true";
+    };
+    const reflush_tray = async () => {
       await invoke("reflush_tray");
-    },
-    async openSetting() {
-      this.showSetting = true;
-    },
-    async closeSetting() {
-      this.showSetting = false;
-    },
-  },
-  mounted() {
-    this.reflush_tray();
-    this.fetchEditModeStatus();
-    // 页面加载时刷新 Launcher 列表
-    this.refreshLaunchers();
-    this.setupEventListener();
-  },
+    };
+    const openSetting = async () => {
+      showSetting.value = true;
+    };
+    const closeSetting = async () => {
+      showSetting.value = false;
+    };
+
+    // 在组件挂载时加载主题
+    onMounted(() => {
+      reflush_tray();
+      fetchEditModeStatus();
+      // 页面加载时刷新 Launcher 列表
+      refreshLaunchers();
+      setupEventListener();
+    });
+
+    return {
+      theme,
+      launchers,
+      editMode,
+      showSetting,
+      launch,
+      createLauncher,
+      refreshLaunchers,
+      moveLauncher,
+      toggleEditMode,
+      fetchEditModeStatus,
+      openSetting,
+      closeSetting,
+    };
+  }
 };
 </script>
 
