@@ -2,18 +2,24 @@ use crate::error::OneClickLaunchError;
 use anyhow::Result;
 use api::{launcher_api, setting_api, window_api};
 use db::{launcher, launcher_resource, settings};
+use lazy_static::lazy_static;
 use sqlx::{SqlitePool, sqlite::SqlitePoolOptions};
 use std::path::PathBuf;
+use std::sync::Mutex;
 use std::{env, fs};
 use tauri::Emitter;
 use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconEvent};
 use tauri::{AppHandle, Manager, tray::TrayIconBuilder};
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_opener::OpenerExt;
-use tracing::info;
+use tracing::{debug, info};
 mod api;
 mod db;
 pub mod error;
+
+lazy_static! {
+    static ref AUTO_START_FLAG: String = "--auto".to_string();
+}
 
 /// 使用系统默认的程序打开指定的文件或 URL。
 ///
@@ -76,7 +82,7 @@ async fn init_db() -> Result<DatabaseManager> {
     let db_path = get_db_path()?;
 
     // 打印数据库路径用于调试
-    println!("db_path:{:?}", db_path);
+    debug!("db_path:{:?}", db_path);
 
     // 创建连接池
     let pool = SqlitePoolOptions::new()
@@ -93,12 +99,39 @@ async fn init_db() -> Result<DatabaseManager> {
     Ok(DatabaseManager { pool })
 }
 
+/// 获取自启编组id集
+async fn query_auto_start_launcher_ids(
+    db_manager: &DatabaseManager,
+) -> Mutex<Option<Vec<launcher_resource::LauncherResource>>> {
+    let auto_start_resources = if let Ok(Some(settings)) =
+        settings::read(&db_manager.pool, "auto_start_launcher_ids").await
+    {
+        let auto_start_launcher_ids: Vec<i64> = serde_json::from_str(&settings.value).unwrap();
+        launcher_resource::query_by_launcher_ids(&db_manager.pool, auto_start_launcher_ids)
+            .await
+            .ok()
+    } else {
+        None
+    };
+    Mutex::new(auto_start_resources)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub async fn run() -> Result<()> {
     let db_manager = init_db().await?;
 
+    // 获取命令行参数
+    let args: Vec<String> = env::args().collect();
+    debug!("命令行参数: {:?}", args);
+    // 检查是否包含 `--auto` 参数, 当系统自动启动应用程序时需要加载自启动编组进行启动
+    let auto_start_resources = if args.contains(&AUTO_START_FLAG) {
+        query_auto_start_launcher_ids(&db_manager).await
+    } else {
+        Mutex::new(None)
+    };
+
     tauri::Builder::default()
-        .setup(|app| {
+        .setup(move |app| {
             let tray_icon = TrayIconBuilder::new()
                 .tooltip("一键启动")
                 .show_menu_on_left_click(false)
@@ -140,6 +173,21 @@ pub async fn run() -> Result<()> {
 
             app.manage(window_context);
 
+            // 检查是否包含 `--auto` 参数
+            if args.contains(&AUTO_START_FLAG) {
+                if let Ok(mut data) = auto_start_resources.lock() {
+                    if let Some(lrs) = data.take() {
+                        if !lrs.is_empty() {
+                            launcher_api::launch_launcher_resources(app.app_handle(), &lrs);
+                            let res = window_api::hide_window_sync(app.app_handle().clone());
+                            debug!("启动自启编组结果: {:?}. 编组信息: {:?}", res, lrs);
+                        } else {
+                            debug!("开启了自启编组,但编组为空");
+                        }
+                    }
+                }
+            }
+
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -167,7 +215,8 @@ pub async fn run() -> Result<()> {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_autostart::init(
             MacosLauncher::LaunchAgent,
-            Some(vec!["--auto"]),
+            // 操作系统以开机自启启动应用程序时携带的参数
+            Some(vec![AUTO_START_FLAG.as_str()]),
         ))
         .invoke_handler(tauri::generate_handler![
             launcher_api::craete_launcher,

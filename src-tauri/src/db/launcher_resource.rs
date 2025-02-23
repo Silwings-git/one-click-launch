@@ -97,6 +97,33 @@ where
     Ok(resources)
 }
 
+// 按launcher_id查询
+pub async fn query_by_launcher_ids<'a, E>(
+    executor: E,
+    launcher_ids: Vec<i64>,
+) -> Result<Vec<LauncherResource>>
+where
+    E: Executor<'a, Database = Sqlite>,
+{
+    if launcher_ids.is_empty() {
+        return Ok(vec![]);
+    }
+
+    let ids = launcher_ids
+        .iter()
+        .map(|id| id.to_string())
+        .collect::<Vec<String>>()
+        .join(",");
+    let query = format!(
+        "SELECT id, launcher_id, name, path FROM launcher_resource WHERE launcher_id IN ({})",
+        ids
+    );
+
+    let resources = sqlx::query_as(&query).fetch_all(executor).await?;
+
+    Ok(resources)
+}
+
 // 查询全部
 pub async fn query_all<'a, E>(executor: E) -> Result<Vec<LauncherResource>>
 where

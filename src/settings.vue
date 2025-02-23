@@ -94,7 +94,7 @@ export default {
         const refreshAutoStartLaunchers = async () => {
             const launchers_data = await invoke("query_launchers");
             launchers.value = [...launchers_data];
-            const at_launchers = await invoke("read_setting", { key: "auto_start_launcher" });
+            const at_launchers = await invoke("read_setting", { key: "auto_start_launcher_ids" });
             if (at_launchers?.value) {
                 autoStartLauncherIds.value = JSON.parse(at_launchers.value || '[]')
                     .filter(id =>
@@ -105,7 +105,7 @@ export default {
 
         const saveAutoStartLauncher = async () => {
             console.log("ddd", autoStartLauncherIds.value);
-            await invoke("save_setting", { key: "auto_start_launcher", value: JSON.stringify(autoStartLauncherIds.value) });
+            await invoke("save_setting", { key: "auto_start_launcher_ids", value: JSON.stringify(autoStartLauncherIds.value) });
         };
 
         // 在组件挂载时加载主题

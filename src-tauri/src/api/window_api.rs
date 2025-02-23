@@ -8,8 +8,12 @@ use crate::{DatabaseManager, WindowContext, db::launcher, error::OneClickLaunchE
 /// 关闭窗口
 #[tauri::command]
 pub async fn hide_window(app: AppHandle) -> Result<(), OneClickLaunchError> {
+    hide_window_sync(app)
+}
+
+pub fn hide_window_sync(app: AppHandle) -> Result<(), OneClickLaunchError> {
     let window = app.get_webview_window("main").unwrap();
-    let _ = window.hide();
+    window.hide()?;
     Ok(())
 }
 

@@ -5,7 +5,10 @@ use tracing::info;
 
 use crate::{
     DatabaseManager,
-    db::{launcher, launcher_resource},
+    db::{
+        launcher,
+        launcher_resource::{self, LauncherResource},
+    },
     error::OneClickLaunchError,
     open_using_default_program,
 };
@@ -231,14 +234,18 @@ pub async fn launch(
 ) -> Result<(), OneClickLaunchError> {
     let resources = launcher_resource::query_by_launcher_id(&db.pool, launcher_id).await?;
 
+    launch_launcher_resources(&app, &resources);
+
+    Ok(())
+}
+
+pub fn launch_launcher_resources(app: &AppHandle, resources: &[LauncherResource]) {
     for resource in resources.iter() {
-        if let Err(e) = open_using_default_program(&app, resource.path.as_str()) {
+        if let Err(e) = open_using_default_program(app, resource.path.as_str()) {
             info!(
                 "启动资源失败,资源名称: {:?},资源路径: {:?},错误信息: {:?}",
                 &resource.name, &resource.path, e
             );
         }
     }
-
-    Ok(())
 }

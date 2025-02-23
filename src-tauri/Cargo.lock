@@ -2726,6 +2726,7 @@ name = "one-click-launch"
 version = "1.0.2"
 dependencies = [
  "anyhow",
+ "lazy_static",
  "rand 0.8.5",
  "serde",
  "serde_json",
