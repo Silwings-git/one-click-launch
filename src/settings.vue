@@ -1,31 +1,31 @@
 <template>
     <div class="settings-container">
         <h2 class="setting-title">设置</h2>
-        <div class="setting-item">
-            <label for="theme-select">主题:</label>
-            <select v-model="theme" @change="changeTheme" :class="['theme-select', theme]">
-                <option value="light">浅色主题</option>
-                <option value="dark">深色主题</option>
-            </select>
+
+        <div class="m-4" style="display: flex;justify-content: space-between; align-items: center;">
+            <p style="margin-right: 10px;">开机启动</p>
+            <input type="checkbox" v-model="autoLaunch" @change="toggleAutoLaunch" />
         </div>
 
-        <div class="setting-item">
-            <label class="checkbox-label">开机启动
-                <input type="checkbox" v-model="autoLaunch" @change="toggleAutoLaunch" />
-            </label>
+        <div class="m-4" style="display: flex; justify-content: space-between;align-items: center;">
+            <p style="margin-right: 10px;">主题</p>
+            <el-select v-model="theme" @change="changeTheme" placeholder="Select" style="width: 240px">
+                <el-option v-for="item in themes" :key="item.id" :label="item.value" :value="item.id" />
+            </el-select>
         </div>
 
-        <div class="setting-item">
-            <label for="auto-start-launcher-select">自动启动编组:</label>
-            <select id="auto-start-launcher-select" v-model="autoStartLaunchers" multiple>
-                <option v-for="item in launchers" :key="item.id" :value="item.id">
-                    {{ item.name }}
-                </option>
-            </select>
+        <div class="m-4" style="display: flex; justify-content: space-between;align-items: center;">
+            <p style="margin-right: 10px;">自动启动编组</p>
+            <el-select v-model="autoStartLauncherIds" @change="saveAutoStartLauncher" style="width: 240px;" multiple
+                collapse-tags collapse-tags-tooltip placeholder="Select">
+                <el-option v-for="item in launchers" :key="item.id" :label="item.name" :value="item.id">
+                    <!-- {{ item.name }} -->
+                </el-option>
+            </el-select>
         </div>
 
         <!-- 按钮 -->
-        <button >刷新</button>
+        <button>刷新</button>
 
     </div>
 </template>
@@ -33,7 +33,7 @@
 <script>
 import { enable, isEnabled, disable } from '@tauri-apps/plugin-autostart';
 import { invoke } from "@tauri-apps/api/core";
-import { onMounted, inject,ref } from 'vue';
+import { onMounted, inject, ref, nextTick } from 'vue';
 
 export default {
     setup(props, { emit }) {
@@ -41,7 +41,8 @@ export default {
         const autoLaunch = ref(false);
         const toggleLock = ref(false);
         const launchers = ref([]);
-        const autoStartLaunchers = ref([]);
+        const autoStartLauncherIds = ref([]);
+        const themes = ref([{ "id": "light", "value": "浅色主题" }, { "id": "dark", "value": "深色主题" }]);
 
         // 从后端加载主题
         const loadTheme = async () => {
@@ -90,19 +91,39 @@ export default {
             }
         };
 
+        const refreshAutoStartLaunchers = async () => {
+            const launchers_data = await invoke("query_launchers");
+            launchers.value = [...launchers_data];
+            const at_launchers = await invoke("read_setting", { key: "auto_start_launcher" });
+            if (at_launchers?.value) {
+                autoStartLauncherIds.value = JSON.parse(at_launchers.value || '[]')
+                    .filter(id =>
+                        id && launchers.value.some(data => data.id === id)
+                    );
+            }
+        };
+
+        const saveAutoStartLauncher = async () => {
+            console.log("ddd", autoStartLauncherIds.value);
+            await invoke("save_setting", { key: "auto_start_launcher", value: JSON.stringify(autoStartLauncherIds.value) });
+        };
+
         // 在组件挂载时加载主题
         onMounted(() => {
             loadTheme();
             fetchAutoLaunchStatus();
+            refreshAutoStartLaunchers();
         });
 
         return {
             theme,
             autoLaunch,
             launchers,
-            autoStartLaunchers,
+            autoStartLauncherIds,
+            themes,
             changeTheme,
-            toggleAutoLaunch
+            toggleAutoLaunch,
+            saveAutoStartLauncher
         };
     }
 };
@@ -111,7 +132,7 @@ export default {
 <style scoped>
 .settings-container {
     /* 最大宽度 */
-    max-width: 500px;
+    max-width: 1000px;
     /* 最大高度 */
     max-height: 400px;
     /* 纵向滚动条 */
@@ -150,7 +171,7 @@ button:hover {
 }
 
 .checkbox-label {
-    display: flex;
+    /* display: flex; */
     align-items: center;
     font-size: 16px;
     cursor: pointer;
@@ -162,15 +183,5 @@ input[type="checkbox"] {
     transform: scale(1.2);
     /* 放大复选框大小 */
     cursor: pointer;
-}
-
-.theme-select.light {
-    background-color: #ffffff;
-    color: #000000;
-}
-
-.theme-select.dark {
-    background-color: rgba(30, 31, 34);
-    color: rgba(188, 190, 196);
 }
 </style>
