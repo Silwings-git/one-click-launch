@@ -1,21 +1,24 @@
 use crate::error::OneClickLaunchError;
 use anyhow::Result;
+use api::launcher_api::de;
 use api::{launcher_api, setting_api, window_api};
 use db::{launcher, launcher_resource, settings};
 use lazy_static::lazy_static;
+use sqlx::{Executor, Sqlite};
 use sqlx::{SqlitePool, sqlite::SqlitePoolOptions};
 use std::path::PathBuf;
 use std::sync::Mutex;
 use std::{env, fs};
-use tauri::Emitter;
 use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconEvent};
 use tauri::{AppHandle, Manager, tray::TrayIconBuilder};
+use tauri::{Emitter, Listener};
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_opener::OpenerExt;
 use tracing::{debug, info};
 mod api;
 mod db;
 pub mod error;
+mod events;
 
 lazy_static! {
     static ref AUTO_START_FLAG: String = "--auto".to_string();
@@ -72,7 +75,7 @@ fn get_db_path() -> Result<PathBuf> {
     if !db_path.exists() {
         // 创建空的数据库文件
         fs::File::create(&db_path)?;
-        println!("Database file created at {:?}", db_path);
+        info!("Database file created at {:?}", db_path);
     }
 
     Ok(db_path)
@@ -116,6 +119,20 @@ async fn query_auto_start_launcher_ids(
     Mutex::new(auto_start_resources)
 }
 
+async fn check_launch_then_exit<'a, E>(executor: E) -> Result<bool, OneClickLaunchError>
+where
+    E: Executor<'a, Database = Sqlite>,
+{
+    match settings::read(executor, "launch_then_exit").await {
+        Ok(Some(setting)) => Ok(string_to_bool(&setting.value)),
+        _ => Ok(false),
+    }
+}
+
+fn string_to_bool(s: &str) -> bool {
+    matches!(s.trim().to_lowercase().as_str(), "true")
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub async fn run() -> Result<()> {
     let db_manager = init_db().await?;
@@ -150,7 +167,7 @@ pub async fn run() -> Result<()> {
                         }
                     }
                     _ => {
-                        // println!("unhandled event {event:?}");
+                        debug!("unhandled event {event:?}");
                     }
                 })
                 .on_menu_event(|app, event| match event.id.as_ref() {
@@ -172,6 +189,20 @@ pub async fn run() -> Result<()> {
             let window_context = WindowContext { tray_icon };
 
             app.manage(window_context);
+
+            // 监听 `event-name`（无论其在什么窗口中触发）
+            let app_handle = app.handle().clone(); // 获取 AppHandle
+            de(app_handle);
+            // let _id = app.listen(launcher_api::LAUNCHER_LAUNCHED_EVENT, move |_event| {
+            //     let inner_app_handle = app_handle.clone();
+            //     tauri::async_runtime::spawn(async move {
+            //         let db = inner_app_handle.state::<DatabaseManager>();
+            //         if let Ok(_exit @ true) = check_launch_then_exit(&db.pool).await {
+            //             debug!("监听到启动器启动完成事件, 已设置启动后退出, 正在退出程序.");
+            //             inner_app_handle.exit(0);
+            //         }
+            //     });
+            // });
 
             // 检查是否包含 `--auto` 参数
             if args.contains(&AUTO_START_FLAG) {

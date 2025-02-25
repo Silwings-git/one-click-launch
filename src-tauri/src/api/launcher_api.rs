@@ -1,17 +1,24 @@
 use anyhow::Result;
 use rand::{Rng, distributions::Alphanumeric};
-use tauri::{AppHandle, Emitter, State};
-use tracing::info;
+use tauri::{AppHandle, Emitter, Manager, State};
+use tracing::{debug, info};
 
 use crate::{
-    DatabaseManager,
+    DatabaseManager, check_launch_then_exit,
     db::{
         launcher,
         launcher_resource::{self, LauncherResource},
     },
     error::OneClickLaunchError,
+    events::{
+        payloads::{LauncherLaunched, LauncherLaunchedPayload},
+        types::{EventDispatcher, EventSystem},
+    },
     open_using_default_program,
 };
+
+pub const LAUNCHER_LAUNCHED_EVENT: &str = "launcher_launched";
+pub const LAUNCHER_BASIC_INFO_UPDATED_EVENT: &str = "launcher_basic_info_updated";
 
 /// 创建新的启动器
 #[tauri::command]
@@ -22,7 +29,7 @@ pub async fn craete_launcher(
 ) -> Result<i64, OneClickLaunchError> {
     let name = name.unwrap_or_else(generate_default_launcher_name);
     let launcher_id = launcher::create(&db.pool, &name, None).await?;
-    let _ = app.emit("launcher_basic_info_updated", "");
+    let _ = app.emit(LAUNCHER_BASIC_INFO_UPDATED_EVENT, "");
     Ok(launcher_id)
 }
 
@@ -50,7 +57,7 @@ pub async fn modify_launcher_name(
     name: String,
 ) -> Result<(), OneClickLaunchError> {
     launcher::modify_launcher_name(&db.pool, launcher_id, &name).await?;
-    let _ = app.emit("launcher_basic_info_updated", "");
+    let _ = app.emit(LAUNCHER_BASIC_INFO_UPDATED_EVENT, "");
     Ok(())
 }
 
@@ -79,7 +86,7 @@ pub async fn copy_launcher(
 
     tx.commit().await?;
 
-    let _ = app.emit("launcher_basic_info_updated", "");
+    let _ = app.emit(LAUNCHER_BASIC_INFO_UPDATED_EVENT, "");
 
     Ok(new_launcher_id)
 }
@@ -147,7 +154,7 @@ pub async fn delete_launcher(
 
     tx.commit().await?;
 
-    let _ = app.emit("launcher_basic_info_updated", "");
+    let _ = app.emit(LAUNCHER_BASIC_INFO_UPDATED_EVENT, "");
 
     Ok(())
 }
@@ -173,7 +180,7 @@ pub async fn modify_launcher_sort(
 
     tx.commit().await?;
 
-    let _ = app.emit("launcher_basic_info_updated", "");
+    let _ = app.emit(LAUNCHER_BASIC_INFO_UPDATED_EVENT, "");
 
     Ok(())
 }
@@ -236,6 +243,13 @@ pub async fn launch(
 
     launch_launcher_resources(&app, &resources);
 
+    // app.emit(
+    //     LAUNCHER_LAUNCHED_EVENT,
+    //     LauncherLaunchedPayload { launcher_id },
+    // )?;
+
+    EventDispatcher::<LauncherLaunched>::send_event(&app, LauncherLaunchedPayload { launcher_id })?;
+
     Ok(())
 }
 
@@ -248,4 +262,31 @@ pub fn launch_launcher_resources(app: &AppHandle, resources: &[LauncherResource]
             );
         }
     }
+}
+
+pub fn de(app: AppHandle) {
+    // 监听 `event-name`（无论其在什么窗口中触发）
+    let app_handle = app; // 获取 AppHandle
+
+    EventSystem::register_listener(&app_handle.clone(), LauncherLaunched, move |_payload| {
+        let inner_app_handle = app_handle.clone();
+        tauri::async_runtime::spawn(async move {
+            let db = inner_app_handle.state::<DatabaseManager>();
+            if let Ok(_exit @ true) = check_launch_then_exit(&db.pool).await {
+                debug!("监听到启动器启动完成事件, 已设置启动后退出, 正在退出程序.");
+                inner_app_handle.exit(0);
+            }
+        });
+    });
+
+    //   let _id = app.listen(launcher_api::LAUNCHER_LAUNCHED_EVENT, move |_event| {
+    //       let inner_app_handle = app_handle.clone();
+    //       tauri::async_runtime::spawn(async move {
+    //           let db = inner_app_handle.state::<DatabaseManager>();
+    //           if let Ok(_exit @ true) = check_launch_then_exit(&db.pool).await {
+    //               debug!("监听到启动器启动完成事件, 已设置启动后退出, 正在退出程序.");
+    //               inner_app_handle.exit(0);
+    //           }
+    //       });
+    //   });
 }

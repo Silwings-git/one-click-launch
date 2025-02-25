@@ -259,7 +259,13 @@ export default {
   background-color: rgba(30, 31, 34);
   color: rgba(188, 190, 196);
 }
-
+.modal-content.dark .el-select {
+  height: 200px;
+}
+.modal-content.dark /deep/ .el-select .el-select__wrapper {
+  background-color: rgba(30, 31, 34);
+  color: rgba(188, 190, 196);
+}
 .modal-overlay.light {
   /* background-color: rgba(255, 255, 255, 0.5); */
   color: #000000;
@@ -383,4 +389,5 @@ button:hover {
 .close-btn:hover {
   color: #000;
 }
+
 </style>

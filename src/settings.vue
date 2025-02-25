@@ -9,19 +9,33 @@
 
         <div class="m-4" style="display: flex; justify-content: space-between;align-items: center;">
             <p style="margin-right: 10px;">主题</p>
-            <el-select v-model="theme" @change="changeTheme" placeholder="Select" style="width: 240px">
+            <el-select append-to=".home" v-model="theme" @change="changeTheme" placeholder="Select" style="width: 240px">
                 <el-option v-for="item in themes" :key="item.id" :label="item.value" :value="item.id" />
             </el-select>
         </div>
 
         <div class="m-4" style="display: flex; justify-content: space-between;align-items: center;">
-            <p style="margin-right: 10px;">自动启动编组</p>
-            <el-select v-model="autoStartLauncherIds" @change="saveAutoStartLauncher" style="width: 240px;" multiple
+            <div style="display: flex;align-items: center;">
+                <p style="margin-right: 10px;">自动启动编组</p>
+                <el-tooltip content="当应用程序被设置为开机启动时, 所选择的编组将在开机启动后自动启动" placement="top">
+                    <Help theme="outline" size="15" fill="#333" />
+                </el-tooltip>
+            </div>
+            <el-select  append-to=".home" v-model="autoStartLauncherIds" @change="saveAutoStartLauncher" style="width: 240px;" multiple
                 collapse-tags collapse-tags-tooltip placeholder="Select">
                 <el-option v-for="item in launchers" :key="item.id" :label="item.name" :value="item.id">
-                    <!-- {{ item.name }} -->
                 </el-option>
             </el-select>
+        </div>
+
+        <div class="m-4" style="display: flex;justify-content: space-between; align-items: center;">
+            <div style="display: flex;align-items: center;">
+                <p style="margin-right: 10px;">启动编组后退出</p>
+                <el-tooltip content="在启动某个编组后退出应用程序" placement="top">
+                    <Help theme="outline" size="15" fill="#333" />
+                </el-tooltip>
+            </div>
+            <input type="checkbox" v-model="launchThenExit" @change="toggleLaunchThenExit" />
         </div>
 
         <!-- 按钮 -->
@@ -34,14 +48,19 @@
 import { enable, isEnabled, disable } from '@tauri-apps/plugin-autostart';
 import { invoke } from "@tauri-apps/api/core";
 import { onMounted, inject, ref, nextTick } from 'vue';
+import { Help } from '@icon-park/vue-next';
 
 export default {
+    components: {
+        Help
+    },
     setup(props, { emit }) {
         const theme = inject('theme');
         const autoLaunch = ref(false);
         const toggleLock = ref(false);
         const launchers = ref([]);
         const autoStartLauncherIds = ref([]);
+        const launchThenExit = ref(false);
         const themes = ref([{ "id": "light", "value": "浅色主题" }, { "id": "dark", "value": "深色主题" }]);
 
         // 从后端加载主题
@@ -104,8 +123,16 @@ export default {
         };
 
         const saveAutoStartLauncher = async () => {
-            console.log("ddd", autoStartLauncherIds.value);
             await invoke("save_setting", { key: "auto_start_launcher_ids", value: JSON.stringify(autoStartLauncherIds.value) });
+        };
+
+        const loadLaunchThenExit = async () => {
+            const kv = await invoke("read_setting", { key: "launch_then_exit" });
+            launchThenExit.value = kv == null || kv.value === "true";
+        };
+
+        const toggleLaunchThenExit = async () => {
+            await invoke("save_setting", { key: "launch_then_exit", value: launchThenExit.value ? "true" : "false" });
         };
 
         // 在组件挂载时加载主题
@@ -113,6 +140,7 @@ export default {
             loadTheme();
             fetchAutoLaunchStatus();
             refreshAutoStartLaunchers();
+            loadLaunchThenExit();
         });
 
         return {
@@ -120,10 +148,12 @@ export default {
             autoLaunch,
             launchers,
             autoStartLauncherIds,
+            saveAutoStartLauncher,
             themes,
             changeTheme,
             toggleAutoLaunch,
-            saveAutoStartLauncher
+            launchThenExit,
+            toggleLaunchThenExit
         };
     }
 };

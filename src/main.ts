@@ -4,6 +4,7 @@ import ElementPlus from 'element-plus'
 import App from "./App.vue";
 import '@fortawesome/fontawesome-free/css/all.css';
 import '@fortawesome/fontawesome-free/js/all.js';
+import '@icon-park/vue-next/styles/index.css';
 
 import Toast, { PluginOptions, POSITION } from "vue-toastification";
 import "vue-toastification/dist/index.css";

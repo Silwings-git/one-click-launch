@@ -58,4 +58,54 @@ export default defineComponent({
     color: rgba(188, 190, 196);
 }
 
+.dark .el-select-dropdown {
+    background-color: rgba(30, 31, 34);
+    color: rgba(188, 190, 196);
+}
+
+.dark .el-select-dropdown__item.is-hovering {
+    background-color: #020913;
+}
+
+.dark .el-tag {
+    background-color: rgba(30, 31, 34);
+    color: rgba(188, 190, 196);
+}
+
+/* 公共样式 */
+input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    background-color: #f0f0f0;
+    cursor: pointer;
+    outline: none;
+}
+
+/* 勾选标记 */
+input[type="checkbox"]:checked::after,
+.dark input[type="checkbox"]:checked::after {
+    content: "✔";
+    display: block;
+    text-align: center;
+    color: #fff;
+    font-size: 12px;
+    line-height: 16px;
+}
+
+/* 深色主题样式 */
+.dark input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    border-color: #bcbec4;
+    background-color: #1e1f22;
+}
+
+.dark input[type="checkbox"]:checked {
+    background-color: #ccc;
+    border-color: #ccc;
+}
+
 </style>

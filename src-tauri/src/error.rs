@@ -18,6 +18,9 @@ pub enum OneClickLaunchError {
 
     #[error("{0}")]
     TauriError(#[from] tauri::Error),
+
+    #[error("Unable to convert from {0} to Event")]
+    EventConvertError(String),
 }
 
 // we must manually implement serde::Serialize
