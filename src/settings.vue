@@ -75,7 +75,6 @@ export default {
         // 定义切换主题的方法
         const changeTheme = async () => {
             await invoke("save_setting", { key: "theme", value: theme.value });
-            await invoke("change_windows_theme", { theme: theme.value });
             window.setTheme(theme.value);
         };
 

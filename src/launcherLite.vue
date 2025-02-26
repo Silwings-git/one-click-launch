@@ -51,7 +51,6 @@ export default {
             try {
                 await invoke("launch", { launcherId: props.launcherData.id });
                 toast.success("启动成功！所有内容已激活！");
-                await invoke("hide_window", {});
             } catch (error) {
                 console.error("启动失败:", error);
                 toast.error("启动失败！");

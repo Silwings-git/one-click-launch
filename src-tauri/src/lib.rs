@@ -1,28 +1,26 @@
 use crate::error::OneClickLaunchError;
 use anyhow::Result;
-use api::launcher_api::de;
-use api::{launcher_api, setting_api, window_api};
+use api::{launcher_api, setting_api};
+use constants::AUTO_START_FLAG;
 use db::{launcher, launcher_resource, settings};
-use lazy_static::lazy_static;
+use events::EventDispatcher;
+use events::system_listeners::register_system_listeners;
+use events::types::{ApplicationStartupComplete, ApplicationStartupCompletePayload};
 use sqlx::{Executor, Sqlite};
 use sqlx::{SqlitePool, sqlite::SqlitePoolOptions};
 use std::path::PathBuf;
-use std::sync::Mutex;
 use std::{env, fs};
+use tauri::Emitter;
 use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconEvent};
 use tauri::{AppHandle, Manager, tray::TrayIconBuilder};
-use tauri::{Emitter, Listener};
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_opener::OpenerExt;
 use tracing::{debug, info};
 mod api;
+mod constants;
 mod db;
 pub mod error;
 mod events;
-
-lazy_static! {
-    static ref AUTO_START_FLAG: String = "--auto".to_string();
-}
 
 /// 使用系统默认的程序打开指定的文件或 URL。
 ///
@@ -102,23 +100,6 @@ async fn init_db() -> Result<DatabaseManager> {
     Ok(DatabaseManager { pool })
 }
 
-/// 获取自启编组id集
-async fn query_auto_start_launcher_ids(
-    db_manager: &DatabaseManager,
-) -> Mutex<Option<Vec<launcher_resource::LauncherResource>>> {
-    let auto_start_resources = if let Ok(Some(settings)) =
-        settings::read(&db_manager.pool, "auto_start_launcher_ids").await
-    {
-        let auto_start_launcher_ids: Vec<i64> = serde_json::from_str(&settings.value).unwrap();
-        launcher_resource::query_by_launcher_ids(&db_manager.pool, auto_start_launcher_ids)
-            .await
-            .ok()
-    } else {
-        None
-    };
-    Mutex::new(auto_start_resources)
-}
-
 async fn check_launch_then_exit<'a, E>(executor: E) -> Result<bool, OneClickLaunchError>
 where
     E: Executor<'a, Database = Sqlite>,
@@ -137,87 +118,21 @@ fn string_to_bool(s: &str) -> bool {
 pub async fn run() -> Result<()> {
     let db_manager = init_db().await?;
 
-    // 获取命令行参数
-    let args: Vec<String> = env::args().collect();
-    debug!("命令行参数: {:?}", args);
-    // 检查是否包含 `--auto` 参数, 当系统自动启动应用程序时需要加载自启动编组进行启动
-    let auto_start_resources = if args.contains(&AUTO_START_FLAG) {
-        query_auto_start_launcher_ids(&db_manager).await
-    } else {
-        Mutex::new(None)
-    };
-
     tauri::Builder::default()
         .setup(move |app| {
-            let tray_icon = TrayIconBuilder::new()
-                .tooltip("一键启动")
-                .show_menu_on_left_click(false)
-                .icon(app.default_window_icon().unwrap().clone())
-                .on_tray_icon_event(|tray, event| match event {
-                    TrayIconEvent::Click {
-                        button: MouseButton::Left,
-                        button_state: MouseButtonState::Up,
-                        ..
-                    } => {
-                        let app = tray.app_handle();
-                        if let Some(window) = app.get_webview_window("main") {
-                            let _ = window.unminimize();
-                            let _ = window.show();
-                            let _ = window.set_focus();
-                        }
-                    }
-                    _ => {
-                        debug!("unhandled event {event:?}");
-                    }
-                })
-                .on_menu_event(|app, event| match event.id.as_ref() {
-                    "quit" => {
-                        info!("quit menu item was clicked");
-                        app.exit(0);
-                    }
-                    id if id.starts_with("launch_") => {
-                        if let Ok(launcher_id) = &id["launch_".len()..].parse::<i64>() {
-                            let _ = app.emit("launch", *launcher_id);
-                        }
-                    }
-                    _ => {
-                        tracing::error!("menu item {:?} not handled", event.id);
-                    }
-                })
-                .build(app)?;
+            // 初始化窗口
+            setup_window(app.handle())?;
 
-            let window_context = WindowContext { tray_icon };
+            // 注册监听器,之后添加新的监听器时在这个方法内部添加
+            register_listeners(app.handle());
 
-            app.manage(window_context);
-
-            // 监听 `event-name`（无论其在什么窗口中触发）
-            let app_handle = app.handle().clone(); // 获取 AppHandle
-            de(app_handle);
-            // let _id = app.listen(launcher_api::LAUNCHER_LAUNCHED_EVENT, move |_event| {
-            //     let inner_app_handle = app_handle.clone();
-            //     tauri::async_runtime::spawn(async move {
-            //         let db = inner_app_handle.state::<DatabaseManager>();
-            //         if let Ok(_exit @ true) = check_launch_then_exit(&db.pool).await {
-            //             debug!("监听到启动器启动完成事件, 已设置启动后退出, 正在退出程序.");
-            //             inner_app_handle.exit(0);
-            //         }
-            //     });
-            // });
-
-            // 检查是否包含 `--auto` 参数
-            if args.contains(&AUTO_START_FLAG) {
-                if let Ok(mut data) = auto_start_resources.lock() {
-                    if let Some(lrs) = data.take() {
-                        if !lrs.is_empty() {
-                            launcher_api::launch_launcher_resources(app.app_handle(), &lrs);
-                            let res = window_api::hide_window_sync(app.app_handle().clone());
-                            debug!("启动自启编组结果: {:?}. 编组信息: {:?}", res, lrs);
-                        } else {
-                            debug!("开启了自启编组,但编组为空");
-                        }
-                    }
-                }
-            }
+            // 当所有初始化都完成后发送应用程序启动完成事件
+            EventDispatcher::<ApplicationStartupComplete>::send_event(
+                app.handle(),
+                ApplicationStartupCompletePayload {
+                    args: env::args().collect(),
+                },
+            )?;
 
             Ok(())
         })
@@ -260,14 +175,75 @@ pub async fn run() -> Result<()> {
             launcher_api::delete_resource,
             launcher_api::query_launchers,
             launcher_api::launch,
-            window_api::hide_window,
             setting_api::save_setting,
             setting_api::read_setting,
             setting_api::read_all_setting,
-            window_api::refresh_tray,
-            window_api::change_windows_theme,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+    Ok(())
+}
+
+fn register_listeners(app: &AppHandle) {
+    // 注册系统级别的监听器
+    register_system_listeners(app);
+}
+
+/// 初始化窗口
+fn setup_window(app: &AppHandle) -> Result<()> {
+    let tray_icon = TrayIconBuilder::new()
+        // 设置系统托盘的提示,鼠标悬浮时会显示
+        .tooltip(constants::APPLICATION_NAME)
+        // 左键系统托盘时不显示菜单
+        .show_menu_on_left_click(false)
+        // 使用主窗口的icon作为系统托盘的图标
+        .icon(app.default_window_icon().unwrap().clone())
+        // 系统托盘的点击事件
+        .on_tray_icon_event(|tray, event| match event {
+            TrayIconEvent::Click {
+                button: MouseButton::Left,
+                button_state: MouseButtonState::Up,
+                ..
+            } => {
+                // 当用户点击系统托盘时使应用程序取消最小化,显示并聚焦
+                let app = tray.app_handle();
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.unminimize();
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                }
+            }
+            _ => {
+                debug!("unhandled event {event:?}");
+            }
+        })
+        .on_menu_event(|app, event| match event.id.as_ref() {
+            "quit" => {
+                // 退出应用程序
+                info!("quit menu item was clicked");
+                app.exit(0);
+            }
+            id if id.starts_with("launch_") => {
+                // 系统托盘的菜单id由"launch_"与启动器id拼接而成, 点击菜单后通过解析id,找到要启动的启动器触发启动
+                let id = &id["launch_".len()..];
+                if let Ok(launcher_id) = id.parse::<i64>() {
+                    let app_cloned = app.clone();
+                    tauri::async_runtime::spawn(async move {
+                        let inner_app = app_cloned.clone();
+                        let db = inner_app.state();
+                        launcher_api::launch(app_cloned, db, launcher_id).await
+                    });
+                }
+            }
+            _ => {
+                tracing::error!("menu item {:?} not handled", event.id);
+            }
+        })
+        .build(app)?;
+
+    let window_context = WindowContext { tray_icon };
+
+    app.manage(window_context);
+
     Ok(())
 }

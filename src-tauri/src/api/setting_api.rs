@@ -1,20 +1,34 @@
-use tauri::State;
+use tauri::{AppHandle, State};
 
 use crate::{
     DatabaseManager,
     db::settings::{self, Settings},
     error::OneClickLaunchError,
+    events::{
+        EventDispatcher,
+        types::{SettingUpdated, SettingUpdatedPayload},
+    },
 };
 
 /// 保存设置
 #[tauri::command]
 pub async fn save_setting(
+    app: AppHandle,
     db: State<'_, DatabaseManager>,
     key: String,
     value: String,
 ) -> Result<(), OneClickLaunchError> {
     let setting = Settings { key, value };
     settings::save(&db.pool, &setting).await?;
+
+    let _ = EventDispatcher::<SettingUpdated>::send_event(
+        &app,
+        SettingUpdatedPayload {
+            key: setting.key.clone(),
+            value: setting.value.clone(),
+        },
+    );
+
     Ok(())
 }
 

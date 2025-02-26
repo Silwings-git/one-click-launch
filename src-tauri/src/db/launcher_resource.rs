@@ -100,7 +100,7 @@ where
 // 按launcher_id查询
 pub async fn query_by_launcher_ids<'a, E>(
     executor: E,
-    launcher_ids: Vec<i64>,
+    launcher_ids: &[i64],
 ) -> Result<Vec<LauncherResource>>
 where
     E: Executor<'a, Database = Sqlite>,

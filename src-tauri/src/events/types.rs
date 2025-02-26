@@ -1,59 +1,77 @@
-use std::marker::PhantomData;
-
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Emitter, Listener};
-use tracing::error;
 
-use crate::error::OneClickLaunchError;
+use super::Event;
 
-// #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
-// pub enum Event {
-//     LauncherLaunched { launcher_id: i64 },
-//     LauncherBasicInfoUpdated { launcher_id: i64 },
-// }
+/// 启动器被启动的事件
+pub struct LauncherLaunched;
 
-// impl Event {
-//     pub fn name(&self) -> &'static str {
-//         match self {
-//             Event::LauncherLaunched { .. } => "launcher_launched",
-//             Event::LauncherBasicInfoUpdated { .. } => "launcher_basic_info_updated",
-//         }
-//     }
-// }
-
-pub trait Event {
-    type Payload: Serialize + for<'a> Deserialize<'a> + Clone;
-
-    fn name() -> &'static str;
+/// 启动器被启动的事件载荷
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct LauncherLaunchedPayload {
+    /// 启动器id集
+    pub launcher_ids: Vec<i64>,
 }
 
-// 事件发送器
-pub struct EventDispatcher<E: Event> {
-    _marker: PhantomData<E>,
-}
+impl Event for LauncherLaunched {
+    type Payload = LauncherLaunchedPayload;
 
-impl<E: Event> EventDispatcher<E> {
-    pub fn send_event(app: &AppHandle, payload: E::Payload) -> Result<(), OneClickLaunchError> {
-        app.emit(E::name(), payload)?;
-        Ok(())
+    fn name() -> &'static str {
+        "launcher:launched"
     }
 }
 
-// 事件监听器注册系统
-pub struct EventSystem;
+/// 应用程序启动完成的事件
+pub struct ApplicationStartupComplete;
 
-impl EventSystem {
-    pub fn register_listener<E, F>(app: &AppHandle, _event: E, callback: F)
-    where
-        E: Event + 'static,
-        F: Fn(E::Payload) + Send + 'static,
-    {
-        app.listen(E::name(), move |e| {
-            if let Ok(payload) = serde_json::from_str(e.payload()) {
-                callback(payload);
-            } else {
-                error!("{}事件payload反序列化失败.原始数据: {}", "", e.payload());
-            }
-        });
+/// 应用程序启动完成的事件载荷
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct ApplicationStartupCompletePayload {
+    /// 应用程序启动参数
+    pub args: Vec<String>,
+}
+
+impl Event for ApplicationStartupComplete {
+    type Payload = ApplicationStartupCompletePayload;
+
+    fn name() -> &'static str {
+        "application:startup-complete"
+    }
+}
+
+/// 启动器基础信息编辑完成事件
+pub struct LauncherBasicInfoUpdated;
+
+/// 启动器基础信息编辑完成事件载荷
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct LauncherBasicInfoUpdatedPayload {
+    /// 启动器id集
+    pub launcher_ids: Vec<i64>,
+}
+
+impl Event for LauncherBasicInfoUpdated {
+    type Payload = LauncherBasicInfoUpdatedPayload;
+
+    fn name() -> &'static str {
+        "launcher:basic_info_updated"
+    }
+}
+
+/// 设置被更新
+pub struct SettingUpdated;
+
+/// 设置被更新载荷
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct SettingUpdatedPayload {
+    /// 设置项
+    pub key: String,
+    /// 设置值
+    pub value: String,
+}
+
+impl Event for SettingUpdated {
+    type Payload = SettingUpdatedPayload;
+
+    fn name() -> &'static str {
+        "setting:updated"
     }
 }

@@ -57,15 +57,6 @@ export default {
     const editMode = ref(true);
     const showSetting = ref(false);
 
-    const setupEventListener = async () => {
-      listen('launch', async (event) => {
-        console.log("收到消息: ", event);
-        await launch(event.payload);
-      });
-      listen('launcher_basic_info_updated', async (event) => {
-        await refresh_tray();
-      });
-    };
     const launch = async (launcherId) => {
       await invoke("launch", { launcherId: launcherId });
     };
@@ -118,9 +109,6 @@ export default {
       const em = await invoke("read_setting", { key: "editMode" })
       editMode.value = em == null || em.value === "true";
     };
-    const refresh_tray = async () => {
-      await invoke("refresh_tray");
-    };
     const openSetting = async () => {
       showSetting.value = true;
     };
@@ -130,11 +118,9 @@ export default {
 
     // 在组件挂载时加载主题
     onMounted(() => {
-      refresh_tray();
       fetchEditModeStatus();
       // 页面加载时刷新 Launcher 列表
       refreshLaunchers();
-      setupEventListener();
     });
 
     return {

@@ -5,20 +5,13 @@ use tauri::{
 
 use crate::{DatabaseManager, WindowContext, db::launcher, error::OneClickLaunchError};
 
-/// 关闭窗口
-#[tauri::command]
-pub async fn hide_window(app: AppHandle) -> Result<(), OneClickLaunchError> {
-    hide_window_sync(app)
-}
-
-pub fn hide_window_sync(app: AppHandle) -> Result<(), OneClickLaunchError> {
+pub fn hide_window(app: &AppHandle) -> Result<(), OneClickLaunchError> {
     let window = app.get_webview_window("main").unwrap();
     window.hide()?;
     Ok(())
 }
 
 /// 刷新系统图标菜单
-#[tauri::command]
 pub async fn refresh_tray(app: AppHandle) -> Result<(), OneClickLaunchError> {
     // 获取全局状态
     let window_context: State<'_, WindowContext> = app.state();
@@ -47,9 +40,7 @@ pub async fn refresh_tray(app: AppHandle) -> Result<(), OneClickLaunchError> {
     Ok(())
 }
 
-/// 修改窗口主题
-#[tauri::command]
-pub async fn change_windows_theme(app: AppHandle, theme: &str) -> Result<(), OneClickLaunchError> {
+pub fn change_windows_theme(app: &AppHandle, theme: &str) -> Result<(), OneClickLaunchError> {
     if let Some(window) = app.get_webview_window("main") {
         window.set_theme(match theme {
             "dark" => Some(Theme::Dark),
