@@ -1,5 +1,5 @@
 <template>
-  <div class="home" style="margin: 0; padding: 0;">
+  <div class="home" style="margin: 0;">
     <div class="topbar">
       <button class="create-launcher-button" @click="createLauncher">创建新编组</button>
       <div class="topbar-button">
@@ -144,8 +144,8 @@ export default {
 <style scoped>
 .home {
   width: 100%;
-  height: 100%;
-  padding: 0px;
+  height: 98vh;
+  padding: 0px 0px 10px 0px;
   box-sizing: border-box;
   display: flex;
   flex-flow: column nowrap;
@@ -164,7 +164,7 @@ export default {
   padding: 10px 10px 10px 10px;
   scrollbar-width: auto;
   /* 调整滚动条宽度 */
-  /* flex:1; */
+  flex:1;
   /* height: clac(100vh -50px); */
 }
 
@@ -184,8 +184,6 @@ export default {
 .launcher-container>* {
   flex: 0 0 300px;
   width: 0;
-  /* 高度固定为 500px，和原始组件一致 */
-  height: 500px;
   padding: 10px 10px 10px 10px;
 }
 

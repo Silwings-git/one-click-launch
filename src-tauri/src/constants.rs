@@ -6,3 +6,5 @@ lazy_static! {
 
 pub static APPLICATION_NAME: &str = "一键启动";
 pub static THEME: &str = "theme";
+pub static WINDOW_MIN_WIDTH: u32 = 800;
+pub static WINDOW_MIN_HEIGHT: u32 = 600;

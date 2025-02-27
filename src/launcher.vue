@@ -280,7 +280,7 @@ export default {
 <style scoped>
 .launcher {
     width: 300px;
-    height: 500px;
+    height: 100%;
     border: 1px solid #ccc;
     border-radius: 8px;
     padding: 10px;

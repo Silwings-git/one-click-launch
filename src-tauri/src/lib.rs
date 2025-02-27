@@ -1,7 +1,7 @@
 use crate::error::OneClickLaunchError;
 use anyhow::Result;
 use api::{launcher_api, setting_api};
-use constants::AUTO_START_FLAG;
+use constants::{AUTO_START_FLAG, WINDOW_MIN_HEIGHT, WINDOW_MIN_WIDTH};
 use db::{launcher, launcher_resource, settings};
 use events::EventDispatcher;
 use events::system_listeners::register_system_listeners;
@@ -9,6 +9,8 @@ use events::types::{ApplicationStartupComplete, ApplicationStartupCompletePayloa
 use sqlx::{Executor, Sqlite};
 use sqlx::{SqlitePool, sqlite::SqlitePoolOptions};
 use std::path::PathBuf;
+use std::sync::Mutex;
+use std::time::Instant;
 use std::{env, fs};
 use tauri::Emitter;
 use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconEvent};
@@ -121,7 +123,7 @@ pub async fn run() -> Result<()> {
     tauri::Builder::default()
         .setup(move |app| {
             // 初始化窗口
-            setup_window(app.handle())?;
+            setup_tray(app.handle())?;
 
             // 注册监听器,之后添加新的监听器时在这个方法内部添加
             register_listeners(app.handle());
@@ -136,13 +138,11 @@ pub async fn run() -> Result<()> {
 
             Ok(())
         })
-        .on_window_event(|window, event| {
-            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                api.prevent_close();
-                let _ = window.hide();
-            }
-        })
+        .on_window_event(handle_window_event)
         .manage(db_manager)
+        .manage(ScaleFactorChangedState {
+            last_reset: Mutex::new(None),
+        })
         // 优先注册单例插件
         .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
             info!("{}, {argv:?}, {cwd}", app.package_info().name);
@@ -190,7 +190,7 @@ fn register_listeners(app: &AppHandle) {
 }
 
 /// 初始化窗口
-fn setup_window(app: &AppHandle) -> Result<()> {
+fn setup_tray(app: &AppHandle) -> Result<()> {
     let tray_icon = TrayIconBuilder::new()
         // 设置系统托盘的提示,鼠标悬浮时会显示
         .tooltip(constants::APPLICATION_NAME)
@@ -246,4 +246,65 @@ fn setup_window(app: &AppHandle) -> Result<()> {
     app.manage(window_context);
 
     Ok(())
+}
+
+struct ScaleFactorChangedState {
+    last_reset: Mutex<Option<Instant>>,
+}
+
+fn handle_window_event(window: &tauri::Window, event: &tauri::WindowEvent) {
+    match event {
+        tauri::WindowEvent::CloseRequested { api, .. } => {
+            api.prevent_close();
+            let _ = window.hide();
+        }
+        tauri::WindowEvent::ScaleFactorChanged {
+            scale_factor,
+            new_inner_size,
+            ..
+        } => {
+            print!(
+                "ScaleFactorChanged scale_factor: {}, new_inner_size: {:?}",
+                scale_factor, new_inner_size
+            );
+
+            let now = Instant::now();
+            let state = window.state::<ScaleFactorChangedState>();
+            let mut lock = state.last_reset.try_lock();
+
+            if let Ok(ref mut last_reset) = lock {
+                // 500ms防抖间隔
+                if last_reset.map_or(true, |t| now.duration_since(t).as_millis() > 500) {
+                    if let Ok(physical_size) = window.inner_size() {
+                        // 如果窗口大小异常，强制调整到正常大小
+                        if physical_size.width != WINDOW_MIN_WIDTH
+                            || physical_size.height != WINDOW_MIN_HEIGHT
+                        {
+                            let _ = window.set_size(tauri::Size::Logical(tauri::LogicalSize {
+                                width: WINDOW_MIN_WIDTH as f64,
+                                height: WINDOW_MIN_HEIGHT as f64,
+                            }));
+                            **last_reset = Some(now);
+                            debug!("DPI发生变化,触发窗口大小重置");
+                        }
+                    }
+                } else {
+                    debug!("DPI重置窗口防抖生效");
+                }
+            }
+        }
+        tauri::WindowEvent::DragDrop(drag_drop_event) => todo!(),
+        tauri::WindowEvent::Resized(physical_size) => {
+            // 如果窗口大小过小，强制调整到正常大小
+            if physical_size.width < WINDOW_MIN_WIDTH || physical_size.height < WINDOW_MIN_HEIGHT {
+                let _ = window.set_size(tauri::Size::Logical(tauri::LogicalSize {
+                    width: WINDOW_MIN_WIDTH as f64,
+                    height: WINDOW_MIN_HEIGHT as f64,
+                }));
+                debug!("窗口大小过小，触发窗口大小重置");
+            }
+        }
+        _ => {         
+        }
+    }
 }

@@ -74,7 +74,7 @@ fn refresh_tray(app: &AppHandle) {
         if let Err(e) = window_api::refresh_tray(app_cloned).await {
             error!("刷新系统图标失败.{:?}", e);
         } else {
-            debug!("刷新系统图标失败成功.");
+            debug!("刷新系统图标成功.");
         }
     });
 }
