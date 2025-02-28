@@ -301,7 +301,8 @@ export default {
 }
 
 .copy-button {
-    background-color: #007bff;
+    background-color: #409eff;;
+    border-color: #409eff; 
     color: white;
     border: none;
     padding: 5px 10px;
@@ -503,7 +504,8 @@ hr {
 }
 
 .dialog-actions button:hover {
-    background-color: #007bff;
+    background-color: #409eff;;
+    border-color: #409eff; 
     color: white;
 }
 

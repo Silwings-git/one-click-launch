@@ -5,16 +5,19 @@ use constants::{AUTO_START_FLAG, WINDOW_MIN_HEIGHT, WINDOW_MIN_WIDTH};
 use db::{launcher, launcher_resource, settings};
 use events::EventDispatcher;
 use events::system_listeners::register_system_listeners;
-use events::types::{ApplicationStartupComplete, ApplicationStartupCompletePayload};
+use events::types::{
+    ApplicationStartupComplete, ApplicationStartupCompletePayload, DragDropResource,
+    DragDropResourcePaylod,
+};
 use sqlx::{Executor, Sqlite};
 use sqlx::{SqlitePool, sqlite::SqlitePoolOptions};
 use std::path::PathBuf;
 use std::sync::Mutex;
 use std::time::Instant;
 use std::{env, fs};
-use tauri::Emitter;
 use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconEvent};
 use tauri::{AppHandle, Manager, tray::TrayIconBuilder};
+use tauri::{DragDropEvent, Emitter};
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_opener::OpenerExt;
 use tracing::{debug, info};
@@ -248,6 +251,7 @@ fn setup_tray(app: &AppHandle) -> Result<()> {
     Ok(())
 }
 
+/// 用于保存上次处理分辨率变更事件的时间
 struct ScaleFactorChangedState {
     last_reset: Mutex<Option<Instant>>,
 }
@@ -293,18 +297,34 @@ fn handle_window_event(window: &tauri::Window, event: &tauri::WindowEvent) {
                 }
             }
         }
-        tauri::WindowEvent::DragDrop(drag_drop_event) => todo!(),
+        tauri::WindowEvent::DragDrop(drag_drop_event) => {
+            // todo 优化
+            // 发送一个DragDropResource的事件,让前端打来导入框
+            if let DragDropEvent::Drop { paths, .. } = drag_drop_event {
+                if !paths.is_empty() {
+                    let _ = EventDispatcher::<DragDropResource>::send_event(
+                        window.app_handle(),
+                        DragDropResourcePaylod {
+                            paths: paths.clone(),
+                        },
+                    );
+                }
+            }
+        }
         tauri::WindowEvent::Resized(physical_size) => {
+            if physical_size.width == 0 && physical_size.height == 0 {
+                // 页面最小化时忽略
+                return;
+            }
             // 如果窗口大小过小，强制调整到正常大小
             if physical_size.width < WINDOW_MIN_WIDTH || physical_size.height < WINDOW_MIN_HEIGHT {
                 let _ = window.set_size(tauri::Size::Logical(tauri::LogicalSize {
                     width: WINDOW_MIN_WIDTH as f64,
                     height: WINDOW_MIN_HEIGHT as f64,
                 }));
-                debug!("窗口大小过小，触发窗口大小重置");
+                debug!("窗口大小过小，触发窗口大小重置: ps: {:?}", physical_size);
             }
         }
-        _ => {         
-        }
+        _ => {}
     }
 }

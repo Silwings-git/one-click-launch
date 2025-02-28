@@ -6,10 +6,11 @@
 
 <script>
 import { defineComponent } from "vue";
-import Launcher from "./launcher.vue";
-import LauncherLite from "./launcherLite.vue";
-import Settings from "./settings.vue";
-import Home from "./home.vue";
+import Launcher from "./Launcher.vue";
+import LauncherLite from "./LauncherLite.vue";
+import Settings from "./Settings.vue";
+import Home from "./Home.vue";
+import DragDropResource from "./DragDropResource.vue";
 import { invoke } from "@tauri-apps/api/core";
 
 import { ref, provide } from 'vue';
@@ -39,7 +40,8 @@ export default defineComponent({
         Launcher,
         LauncherLite,
         Settings,
-        Home
+        Home,
+        DragDropResource
     },
     mounted() {
         this.loadTheme();

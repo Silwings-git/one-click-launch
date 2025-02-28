@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use serde::{Deserialize, Serialize};
 
 use super::Event;
@@ -73,5 +75,22 @@ impl Event for SettingUpdated {
 
     fn name() -> &'static str {
         "setting:updated"
+    }
+}
+
+/// 拖放资源
+pub struct DragDropResource;
+/// 拖放资源载荷
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct DragDropResourcePaylod {
+    /// 拖放到窗口上的路径列表。
+    pub paths: Vec<PathBuf>,
+}
+
+impl Event for DragDropResource {
+    type Payload = DragDropResourcePaylod;
+
+    fn name() -> &'static str {
+        "launcher:drag_drop_resource"
     }
 }

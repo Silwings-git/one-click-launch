@@ -30,6 +30,13 @@
         <settings />
       </div>
     </div>
+    <!-- 悬浮框 -->
+    <div v-if="dragDropResourcePaths.length > 0" :class="['modal-overlay', theme]" @click="closeSetting">
+      <div :class="['modal-content', theme]" @click.stop>
+        <dragDropResource :pathList="dragDropResourcePaths" @cancel_drag_drop="cleanDragDropResourcePaths"
+          @confirm_drag_drop="cleanDragDropResourcePaths" />
+      </div>
+    </div>
   </div>
 </template>
 
@@ -37,11 +44,12 @@
 import Launcher from './Launcher.vue';
 import LauncherLite from './LauncherLite.vue';
 import Settings from './Settings.vue';
+import DragDropResource from './DragDropResource.vue';
 import { invoke } from "@tauri-apps/api/core";
 import { useToast } from "vue-toastification";
 import { listen } from '@tauri-apps/api/event';
 import { inject } from 'vue';
-import { ref, reactive, onMounted,nextTick  } from 'vue';
+import { ref, reactive, onMounted, nextTick } from 'vue';
 
 const toast = useToast()
 
@@ -49,14 +57,23 @@ export default {
   components: {
     Launcher,
     LauncherLite,
-    Settings
+    Settings,
+    DragDropResource
   },
   setup() {
     const theme = inject('theme');
     const launchers = ref([]);
     const editMode = ref(true);
     const showSetting = ref(false);
+    const dragDropResourcePaths = ref([]);
 
+    const setupEventListener = async () => {
+      listen('launcher:drag_drop_resource', async (event) => {
+        if (dragDropResourcePaths.value.length == 0) {
+          dragDropResourcePaths.value = Array.from(event.payload.paths);
+        }
+      });
+    };
     const launch = async (launcherId) => {
       await invoke("launch", { launcherId: launcherId });
     };
@@ -116,8 +133,13 @@ export default {
       showSetting.value = false;
     };
 
+    const cleanDragDropResourcePaths = async () => {
+      dragDropResourcePaths.value = [];
+    };
+
     // 在组件挂载时加载主题
     onMounted(() => {
+      setupEventListener();
       fetchEditModeStatus();
       // 页面加载时刷新 Launcher 列表
       refreshLaunchers();
@@ -136,6 +158,8 @@ export default {
       fetchEditModeStatus,
       openSetting,
       closeSetting,
+      dragDropResourcePaths,
+      cleanDragDropResourcePaths
     };
   }
 };
@@ -164,7 +188,7 @@ export default {
   padding: 10px 10px 10px 10px;
   scrollbar-width: auto;
   /* 调整滚动条宽度 */
-  flex:1;
+  flex: 1;
   /* height: clac(100vh -50px); */
 }
 
@@ -243,13 +267,16 @@ export default {
   background-color: rgba(30, 31, 34);
   color: rgba(188, 190, 196);
 }
+
 .modal-content.dark .el-select {
   height: 200px;
 }
+
 .modal-content.dark /deep/ .el-select .el-select__wrapper {
   background-color: rgba(30, 31, 34);
   color: rgba(188, 190, 196);
 }
+
 .modal-overlay.light {
   /* background-color: rgba(255, 255, 255, 0.5); */
   color: #000000;
@@ -261,7 +288,9 @@ export default {
 }
 
 .create-launcher-button {
-  background-color: #007bff;
+  background-color: #409eff;
+  ;
+  border-color: #409eff;
   /* 按钮背景色 */
   color: white;
   /* 按钮文字颜色 */
@@ -327,11 +356,13 @@ input[type="checkbox"] {
 
 button {
   padding: 10px 20px;
-  background-color: #007bff;
+  background-color: #409eff;
+  ;
   color: white;
   border: none;
   border-radius: 5px;
   cursor: pointer;
+  border-color: #409eff;
 }
 
 button:hover {
@@ -373,5 +404,4 @@ button:hover {
 .close-btn:hover {
   color: #000;
 }
-
 </style>
