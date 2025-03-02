@@ -314,6 +314,13 @@ pub async fn launch(
     Ok(())
 }
 
+/// 打开路径
+#[tauri::command]
+pub async fn open_path(app: AppHandle, path: &str) -> Result<(), OneClickLaunchError> {
+    open_using_default_program(&app, path)?;
+    Ok(())
+}
+
 pub fn launch_resources(app: &AppHandle, resources: &[LauncherResource]) {
     for resource in resources.iter() {
         if let Err(e) = open_using_default_program(app, resource.path.as_str()) {

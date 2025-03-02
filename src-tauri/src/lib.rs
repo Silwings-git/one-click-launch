@@ -143,6 +143,7 @@ pub async fn run() -> Result<()> {
             launcher_api::delete_resource,
             launcher_api::query_launchers,
             launcher_api::launch,
+            launcher_api::open_path,
             setting_api::save_setting,
             setting_api::read_setting,
             setting_api::read_all_setting,

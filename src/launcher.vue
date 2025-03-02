@@ -54,15 +54,24 @@
                     </span>
                     <input v-if="editingResourceState.get(item.id)" v-model="newResourceName" class="name-input"
                         @blur="saveResourceName(item)" @keyup.enter="saveResourceName(item)" />
-                    <span>{{ item.path }}</span>
+                    <span>
+                        {{ item.path }}
+                    </span>
                 </span>
-                <button class="delete-button" @click="deleteRow(item.id)" title="删除">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16"
-                        height="16">
-                        <path
-                            d="M9 3v1H4v2h16V4h-5V3H9zM5 7v12c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V7H5zm4 2h2v8H9V9zm4 0h2v8h-2V9z" />
-                    </svg>
-                </button>
+                <Press class="press" theme="outline" size="19" @click="openPath(item)" />
+                <el-popconfirm title="确定要删除吗？" confirm-button-text="确认" cancel-button-text="取消"
+                    @confirm="deleteRow(item.id)">
+                    <template #reference>
+                        <button class="delete-button" title="删除">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16"
+                                height="16">
+                                <path
+                                    d="M9 3v1H4v2h16V4h-5V3H9zM5 7v12c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V7H5zm4 2h2v8H9V9zm4 0h2v8h-2V9z" />
+                            </svg>
+                        </button>
+                    </template>
+                </el-popconfirm>
+
             </div>
         </div>
         <button class="launch-button" :disabled="isLaunching" @click="launch">
@@ -88,6 +97,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { useToast } from "vue-toastification";
 import { platform } from '@tauri-apps/plugin-os'
 import { ref, reactive, onMounted, nextTick, onBeforeMount } from 'vue';
+import { Press } from '@icon-park/vue-next';
 
 export default {
     props: {
@@ -95,6 +105,9 @@ export default {
             type: Object,
             required: true, // 确保传入数据
         },
+    },
+    components: {
+        Press
     },
     setup(props, { emit }) {
         const toast = useToast()
@@ -206,6 +219,10 @@ export default {
                 isLaunching.value = false; // 恢复按钮状态
             }
         };
+        const openPath = async (item) => {
+            await invoke("open_path", { path: item.path });
+            toast.success(item.name + " 已打开！");
+        };
         const showAddUrlDialog = () => {
             showDialog.value = true; // 打开添加网址的对话框
             dropdownVisible.value = false; // 关闭下拉菜单
@@ -269,7 +286,8 @@ export default {
             closeDialog,
             moveLauncher,
             debounce,
-            debouncedLaunch
+            debouncedLaunch,
+            openPath
         };
     }
 };
@@ -520,5 +538,22 @@ hr {
 
 .mo-launcher {
     font-size: 18px;
+}
+
+.press {
+    transition: transform 0.3s ease, fill 0.3s ease;
+    color: #a19797;
+}
+
+.press:hover {
+    transform: scale(1.05);
+    color: #218838;
+}
+
+.press:active {
+    /* 点击时更深的绿色 */
+    color: #1e7e34;
+    /* 点击时缩小效果 */
+    transform: scale(0.95);
 }
 </style>
