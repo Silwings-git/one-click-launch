@@ -58,6 +58,7 @@ export default defineComponent({
 .dark {
     background-color: rgba(30, 31, 34);
     color: rgba(188, 190, 196);
+    scrollbar-color: rgba(188, 190, 196, 0.5) rgba(30, 31, 34, 0.5);
 }
 
 .dark .el-select-dropdown {
@@ -109,5 +110,4 @@ input[type="checkbox"]:checked::after,
     background-color: #ccc;
     border-color: #ccc;
 }
-
 </style>

@@ -1,5 +1,5 @@
 <template>
-    <div class="settings-container">
+    <div :class="['settings-container', theme]">
         <h2 class="setting-title">设置</h2>
 
         <div class="m-4" style="display: flex;justify-content: space-between; align-items: center;">
@@ -11,7 +11,7 @@
             <div style="display: flex;align-items: center;">
                 <p style="margin-right: 10px;">启动编组后退出</p>
                 <el-tooltip content="在启动某个编组后退出应用程序" placement="top">
-                    <Help theme="outline" size="15" fill="#333" />
+                    <Help :class="['help', theme]" theme="outline" size="15"  />
                 </el-tooltip>
             </div>
             <input type="checkbox" v-model="launchThenExit" @change="toggleLaunchThenExit" />
@@ -21,7 +21,7 @@
             <div style="display: flex;align-items: center;">
                 <p style="margin-right: 10px;">自动启动编组</p>
                 <el-tooltip content="当应用程序被设置为开机启动时, 所选择的编组将在开机启动后自动启动" placement="top">
-                    <Help theme="outline" size="15" fill="#333" />
+                    <Help :class="['help', theme]" theme="outline" size="15"  />
                 </el-tooltip>
             </div>
             <el-select append-to=".home" v-model="autoStartLauncherIds" @change="saveAutoStartLauncher"
@@ -242,5 +242,13 @@ input[type="checkbox"] {
     transform: scale(1.2);
     /* 放大复选框大小 */
     cursor: pointer;
+}
+
+.help.light {
+    color: #333;
+}
+
+.help.dark {
+    color: #a3a1a1;
 }
 </style>

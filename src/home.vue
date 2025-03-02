@@ -404,10 +404,27 @@ button:hover {
   right: 7px;
   font-size: 24px;
   cursor: pointer;
+}
+
+.close-btn.light {
   color: #333;
 }
 
-.close-btn:hover {
+.close-btn.dark {
+  position: absolute;
+  top: 0px;
+  right: 7px;
+  font-size: 24px;
+  cursor: pointer;
+  color: #a3a1a1;
+}
+
+.close-btn.light:hover {
   color: #000;
 }
+
+.close-btn.light:hover {
+  color: #f5ebeb;
+}
+
 </style>
