@@ -5,7 +5,7 @@ use crate::{
     DatabaseManager,
     api::{launcher_api, window_api},
     check_launch_then_exit,
-    constants::{AUTO_START_FLAG, THEME},
+    constants::{AUTO_START_FLAG, THEME_KEY},
     db::{launcher_resource, settings},
     events::EventDispatcher,
 };
@@ -164,7 +164,7 @@ fn hide_window(app: &AppHandle, payload: &LauncherLaunchedPayload) {
 
 /// 隐藏窗口: 启动器启动隐藏窗口
 fn change_theme(app: &AppHandle, payload: &SettingUpdatedPayload) {
-    if THEME == payload.key {
+    if THEME_KEY == payload.key {
         match window_api::change_windows_theme(app, &payload.value) {
             Ok(_) => {
                 debug!("修改主题成功,新主题: {}", payload.value)

@@ -7,27 +7,6 @@
             <input type="checkbox" v-model="autoLaunch" @change="toggleAutoLaunch" />
         </div>
 
-        <div class="m-4" style="display: flex; justify-content: space-between;align-items: center;">
-            <p style="margin-right: 10px;">主题</p>
-            <el-select append-to=".home" v-model="theme" @change="changeTheme" placeholder="Select" style="width: 240px">
-                <el-option v-for="item in themes" :key="item.id" :label="item.value" :value="item.id" />
-            </el-select>
-        </div>
-
-        <div class="m-4" style="display: flex; justify-content: space-between;align-items: center;">
-            <div style="display: flex;align-items: center;">
-                <p style="margin-right: 10px;">自动启动编组</p>
-                <el-tooltip content="当应用程序被设置为开机启动时, 所选择的编组将在开机启动后自动启动" placement="top">
-                    <Help theme="outline" size="15" fill="#333" />
-                </el-tooltip>
-            </div>
-            <el-select  append-to=".home" v-model="autoStartLauncherIds" @change="saveAutoStartLauncher" style="width: 240px;" multiple
-                collapse-tags collapse-tags-tooltip placeholder="Select">
-                <el-option v-for="item in launchers" :key="item.id" :label="item.name" :value="item.id">
-                </el-option>
-            </el-select>
-        </div>
-
         <div class="m-4" style="display: flex;justify-content: space-between; align-items: center;">
             <div style="display: flex;align-items: center;">
                 <p style="margin-right: 10px;">启动编组后退出</p>
@@ -38,8 +17,42 @@
             <input type="checkbox" v-model="launchThenExit" @change="toggleLaunchThenExit" />
         </div>
 
+        <div class="m-4" style="display: flex; justify-content: space-between;align-items: center;">
+            <div style="display: flex;align-items: center;">
+                <p style="margin-right: 10px;">自动启动编组</p>
+                <el-tooltip content="当应用程序被设置为开机启动时, 所选择的编组将在开机启动后自动启动" placement="top">
+                    <Help theme="outline" size="15" fill="#333" />
+                </el-tooltip>
+            </div>
+            <el-select append-to=".home" v-model="autoStartLauncherIds" @change="saveAutoStartLauncher"
+                style="width: 240px;" multiple collapse-tags collapse-tags-tooltip placeholder="Select">
+                <el-option v-for="item in launchers" :key="item.id" :label="item.name" :value="item.id">
+                </el-option>
+            </el-select>
+        </div>
+
+        <div class="m-4" style="display: flex; justify-content: space-between;align-items: center;">
+            <p style="margin-right: 10px;">主题</p>
+            <el-select append-to=".home" v-model="theme" @change="changeTheme" placeholder="Select"
+                style="width: 240px">
+                <el-option v-for="item in themes" :key="item.id" :label="item.value" :value="item.id" />
+            </el-select>
+        </div>
+
+        <div class="m-4" style="display: flex;justify-content: space-between; align-items: center;">
+            <div style="display: flex;align-items: center;">
+                <p style="margin-right: 10px;">关闭主面板</p>
+            </div>
+            <div class="my-2 ml-4">
+                <el-radio-group v-model="closeMainPanel" @change="saveCloseMainPanel">
+                    <el-radio value="m1">最小化到系统托盘</el-radio>
+                    <el-radio value="m2">退出一键启动</el-radio>
+                </el-radio-group>
+            </div>
+        </div>
+
         <!-- 按钮 -->
-        <button>刷新</button>
+        <button @click="loadCloseMainPanel">刷新</button>
 
     </div>
 </template>
@@ -62,6 +75,7 @@ export default {
         const autoStartLauncherIds = ref([]);
         const launchThenExit = ref(false);
         const themes = ref([{ "id": "light", "value": "浅色主题" }, { "id": "dark", "value": "深色主题" }]);
+        const closeMainPanel = ref();
 
         // 从后端加载主题
         const loadTheme = async () => {
@@ -130,6 +144,19 @@ export default {
             launchThenExit.value = kv == null || kv.value === "true";
         };
 
+        const loadCloseMainPanel = async () => {
+            const kv = await invoke("read_setting", { key: "close_main_panel" });
+            if (null == kv?.value) {
+                closeMainPanel.value = "m1";
+            } else {
+                closeMainPanel.value = kv.value;
+            }
+        };
+
+        const saveCloseMainPanel = async () => {
+            await invoke("save_setting", { key: "close_main_panel", value: closeMainPanel.value });
+        };
+
         const toggleLaunchThenExit = async () => {
             await invoke("save_setting", { key: "launch_then_exit", value: launchThenExit.value ? "true" : "false" });
         };
@@ -140,6 +167,7 @@ export default {
             fetchAutoLaunchStatus();
             refreshAutoStartLaunchers();
             loadLaunchThenExit();
+            loadCloseMainPanel();
         });
 
         return {
@@ -152,7 +180,10 @@ export default {
             changeTheme,
             toggleAutoLaunch,
             launchThenExit,
-            toggleLaunchThenExit
+            toggleLaunchThenExit,
+            closeMainPanel,
+            saveCloseMainPanel,
+            loadCloseMainPanel
         };
     }
 };
@@ -188,8 +219,9 @@ label {
 
 button {
     padding: 10px 20px;
-    background-color: #409eff;;
-    border-color: #409eff; 
+    background-color: #409eff;
+    ;
+    border-color: #409eff;
     color: white;
     border: none;
     border-radius: 5px;

@@ -262,6 +262,19 @@ fn handle_window_event(window: &tauri::Window, event: &tauri::WindowEvent) {
         tauri::WindowEvent::CloseRequested { api, .. } => {
             api.prevent_close();
             let _ = window.hide();
+
+            let app_handle = window.app_handle().clone();
+            tauri::async_runtime::spawn(async move {
+                let db = app_handle.state::<DatabaseManager>();
+                let setting = setting_api::read_setting(db, constants::CLOSE_MAIN_PANEL_KEY).await;
+
+                match setting {
+                    Ok(Some(setting)) if constants::CLOSE_MAIN_PANEL_EXIT == setting.value => {
+                        app_handle.exit(0);
+                    }
+                    _ => {}
+                }
+            });
         }
         tauri::WindowEvent::ScaleFactorChanged {
             scale_factor,
@@ -298,19 +311,17 @@ fn handle_window_event(window: &tauri::Window, event: &tauri::WindowEvent) {
                 }
             }
         }
-        tauri::WindowEvent::DragDrop(drag_drop_event) => {
-            match drag_drop_event {
-                DragDropEvent::Drop { paths, .. } if !paths.is_empty() => {
-                    let _ = EventDispatcher::<DragDropResource>::send_event(
-                        window.app_handle(),
-                        DragDropResourcePaylod {
-                            paths: paths.clone(),
-                        },
-                    );
-                }
-                _ => {}
+        tauri::WindowEvent::DragDrop(drag_drop_event) => match drag_drop_event {
+            DragDropEvent::Drop { paths, .. } if !paths.is_empty() => {
+                let _ = EventDispatcher::<DragDropResource>::send_event(
+                    window.app_handle(),
+                    DragDropResourcePaylod {
+                        paths: paths.clone(),
+                    },
+                );
             }
-        }
+            _ => {}
+        },
         tauri::WindowEvent::Resized(physical_size) => {
             if physical_size.width == 0 && physical_size.height == 0 {
                 // 页面最小化时忽略

@@ -46,6 +46,7 @@ where
         .bind(key)
         .fetch_optional(executor)
         .await?;
+    println!("s :{:?}", settings);
     Ok(settings)
 }
 

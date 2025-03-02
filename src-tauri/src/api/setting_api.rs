@@ -36,9 +36,9 @@ pub async fn save_setting(
 #[tauri::command]
 pub async fn read_setting(
     db: State<'_, DatabaseManager>,
-    key: String,
+    key: &str,
 ) -> Result<Option<Settings>, OneClickLaunchError> {
-    let setting = settings::read(&db.pool, &key).await?;
+    let setting = settings::read(&db.pool, key).await?;
     Ok(setting)
 }
 
