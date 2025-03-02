@@ -51,9 +51,6 @@
             </div>
         </div>
 
-        <!-- 按钮 -->
-        <button @click="loadCloseMainPanel">刷新</button>
-
     </div>
 </template>
 

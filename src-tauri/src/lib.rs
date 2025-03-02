@@ -35,6 +35,7 @@ pub struct WindowContext {
     pub tray_icon: TrayIcon,
 }
 
+#[cfg(not(feature = "portable"))]
 fn get_db_path() -> Result<PathBuf> {
     // 获取用户的 AppData 目录路径
     let app_data = env::var("APPDATA")?;
@@ -44,6 +45,29 @@ fn get_db_path() -> Result<PathBuf> {
         .join("one_click_launch")
         .join("data")
         .join("one_click_launch.db");
+
+    Ok(db_path)
+}
+
+#[cfg(feature = "portable")]
+fn get_db_path() -> Result<PathBuf> {
+    // 便携版：使用当前可执行文件的目录
+    let exe_path = env::current_exe()?;
+    let db_path = exe_path
+        .parent()
+        .ok_or_else(|| {
+            std::io::Error::new(std::io::ErrorKind::Other, "Cannot get executable directory")
+        })?
+        .join("data")
+        .join("one_click_launch.db");
+
+    Ok(db_path)
+}
+
+async fn init_db() -> Result<DatabaseManager> {
+    let db_path = get_db_path()?;
+
+    debug!("db_path:{:?}", db_path);
 
     // 确保目录存在
     if let Some(parent) = db_path.parent() {
@@ -58,15 +82,6 @@ fn get_db_path() -> Result<PathBuf> {
         fs::File::create(&db_path)?;
         info!("Database file created at {:?}", db_path);
     }
-
-    Ok(db_path)
-}
-
-async fn init_db() -> Result<DatabaseManager> {
-    let db_path = get_db_path()?;
-
-    // 打印数据库路径用于调试
-    debug!("db_path:{:?}", db_path);
 
     // 创建连接池
     let pool = SqlitePoolOptions::new()
@@ -122,6 +137,7 @@ pub async fn run() -> Result<()> {
             app.emit("single-instance", Payload { args: argv, cwd })
                 .unwrap();
         }))
+        .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_os::init())

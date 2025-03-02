@@ -2750,6 +2750,7 @@ dependencies = [
  "tauri-plugin-persisted-scope",
  "tauri-plugin-shell",
  "tauri-plugin-single-instance",
+ "tauri-plugin-window-state",
  "thiserror 2.0.11",
  "tokio",
  "tracing",
@@ -4462,7 +4463,7 @@ dependencies = [
 [[package]]
 name = "tauri-plugin-autostart"
 version = "2.2.0"
-source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v2#6f881293fcd67838f6f3f8063f536292431dd1f7"
+source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v2#024815018fbc63a37afc716796a454925aa7d25e"
 dependencies = [
  "auto-launch",
  "serde",
@@ -4475,7 +4476,7 @@ dependencies = [
 [[package]]
 name = "tauri-plugin-dialog"
 version = "2.2.0"
-source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v2#6f881293fcd67838f6f3f8063f536292431dd1f7"
+source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v2#024815018fbc63a37afc716796a454925aa7d25e"
 dependencies = [
  "log",
  "raw-window-handle",
@@ -4492,7 +4493,7 @@ dependencies = [
 [[package]]
 name = "tauri-plugin-fs"
 version = "2.2.0"
-source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v2#6f881293fcd67838f6f3f8063f536292431dd1f7"
+source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v2#024815018fbc63a37afc716796a454925aa7d25e"
 dependencies = [
  "anyhow",
  "dunce",
@@ -4536,7 +4537,7 @@ dependencies = [
 [[package]]
 name = "tauri-plugin-os"
 version = "2.2.0"
-source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v2#6f881293fcd67838f6f3f8063f536292431dd1f7"
+source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v2#024815018fbc63a37afc716796a454925aa7d25e"
 dependencies = [
  "gethostname",
  "log",
@@ -4553,7 +4554,7 @@ dependencies = [
 [[package]]
 name = "tauri-plugin-persisted-scope"
 version = "2.2.0"
-source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v2#6f881293fcd67838f6f3f8063f536292431dd1f7"
+source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v2#024815018fbc63a37afc716796a454925aa7d25e"
 dependencies = [
  "aho-corasick",
  "bincode",
@@ -4568,7 +4569,7 @@ dependencies = [
 [[package]]
 name = "tauri-plugin-shell"
 version = "2.2.0"
-source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v2#6f881293fcd67838f6f3f8063f536292431dd1f7"
+source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v2#024815018fbc63a37afc716796a454925aa7d25e"
 dependencies = [
  "encoding_rs",
  "log",
@@ -4587,8 +4588,8 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-single-instance"
-version = "2.2.1"
-source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v2#6f881293fcd67838f6f3f8063f536292431dd1f7"
+version = "2.2.2"
+source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v2#024815018fbc63a37afc716796a454925aa7d25e"
 dependencies = [
  "serde",
  "serde_json",
@@ -4597,6 +4598,20 @@ dependencies = [
  "tracing",
  "windows-sys 0.59.0",
  "zbus",
+]
+
+[[package]]
+name = "tauri-plugin-window-state"
+version = "2.2.1"
+source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v2#024815018fbc63a37afc716796a454925aa7d25e"
+dependencies = [
+ "bitflags 2.8.0",
+ "log",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-plugin",
+ "thiserror 2.0.11",
 ]
 
 [[package]]
