@@ -123,6 +123,7 @@ pub fn handle_window_event(window: &tauri::Window, event: &tauri::WindowEvent) {
         }
         tauri::WindowEvent::DragDrop(drag_drop_event) => match drag_drop_event {
             DragDropEvent::Drop { paths, .. } if !paths.is_empty() => {
+                let _ = window.set_focus();
                 let _ = EventDispatcher::<DragDropResource>::send_event(
                     window.app_handle(),
                     DragDropResourcePaylod {
