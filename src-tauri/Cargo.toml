@@ -37,3 +37,4 @@ sqlx = { version = "0.5", features = ["runtime-tokio-rustls", "sqlite"] }
 tokio = { version = "1.43.0", features = ["full"] }
 rand = "0.8.5"
 lazy_static = "1.5.0"
+itertools = "0.14.0"

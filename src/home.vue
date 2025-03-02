@@ -23,18 +23,18 @@
         :class="['launcher-lite-container-item', theme]" @launcher-updated="refreshLaunchers"
         @launcher-moved="moveLauncher" />
     </div>
-    <!-- 悬浮框 -->
+    <!-- 设置 -->
     <div v-if="showSetting" :class="['modal-overlay', theme]" @click="closeSetting">
       <div :class="['modal-content', theme]" @click.stop>
         <span class="close-btn" @click="closeSetting">&times;</span>
         <settings />
       </div>
     </div>
-    <!-- 悬浮框 -->
+    <!-- 拖拽文件 -->
     <div v-if="dragDropResourcePaths.length > 0" :class="['modal-overlay', theme]" @click="closeSetting">
       <div :class="['modal-content', theme]" @click.stop>
         <dragDropResource :pathList="dragDropResourcePaths" @cancel_drag_drop="cleanDragDropResourcePaths"
-          @confirm_drag_drop="cleanDragDropResourcePaths" />
+          @confirm_drag_drop="confirmDragDrop" />
       </div>
     </div>
   </div>
@@ -134,7 +134,12 @@ export default {
     };
 
     const cleanDragDropResourcePaths = async () => {
-      dragDropResourcePaths.value = [];
+      dragDropResourcePaths.value.splice(0, dragDropResourcePaths.value.length);
+    };
+
+    const confirmDragDrop = async () => {
+      dragDropResourcePaths.value.splice(0, dragDropResourcePaths.value.length);
+      await refreshLaunchers();
     };
 
     // 在组件挂载时加载主题
@@ -159,7 +164,8 @@ export default {
       openSetting,
       closeSetting,
       dragDropResourcePaths,
-      cleanDragDropResourcePaths
+      cleanDragDropResourcePaths,
+      confirmDragDrop
     };
   }
 };

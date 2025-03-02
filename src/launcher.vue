@@ -8,13 +8,18 @@
                 @keyup.enter="saveLauncherName" />
             <div class="button-container">
                 <button class="copy-button" @click="copyLauncher">复制</button>
-                <button class="delete-launcher" @click="deleteLauncher" title="删除">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16"
-                        height="16">
-                        <path
-                            d="M9 3v1H4v2h16V4h-5V3H9zM5 7v12c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V7H5zm4 2h2v8H9V9zm4 0h2v8h-2V9z" />
-                    </svg>
-                </button>
+                <el-popconfirm title="确定要删除吗？" confirm-button-text="确认" cancel-button-text="取消"
+                    @confirm="deleteLauncher">
+                    <template #reference>
+                        <button class="delete-launcher" title="删除">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16"
+                                height="16">
+                                <path
+                                    d="M9 3v1H4v2h16V4h-5V3H9zM5 7v12c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V7H5zm4 2h2v8H9V9zm4 0h2v8h-2V9z" />
+                            </svg>
+                        </button>
+                    </template>
+                </el-popconfirm>
             </div>
         </div>
         <hr />
@@ -84,8 +89,6 @@ import { useToast } from "vue-toastification";
 import { platform } from '@tauri-apps/plugin-os'
 import { ref, reactive, onMounted, nextTick, onBeforeMount } from 'vue';
 
-const toast = useToast()
-
 export default {
     props: {
         launcherData: {
@@ -94,7 +97,7 @@ export default {
         },
     },
     setup(props, { emit }) {
-
+        const toast = useToast()
         // 控制下拉菜单的显示
         const dropdownVisible = ref(false);
         // 控制网址弹框的显示
@@ -184,14 +187,8 @@ export default {
             emit("launcher-updated", props.launcherData.id);
         };
         const deleteLauncher = async () => {
-            const userConfirmed = await confirm(
-                "您确定要删除这一行吗？此操作无法撤销。",
-                { title: "确认删除", type: "question" }
-            );
-            if (userConfirmed) {
-                await invoke("delete_launcher", { "launcherId": props.launcherData.id });
-                emit("launcher-updated", props.launcherData.id);
-            }
+            await invoke("delete_launcher", { "launcherId": props.launcherData.id });
+            emit("launcher-updated", props.launcherData.id);
         };
         const copyLauncher = async () => {
             await invoke("copy_launcher", { launcherId: props.launcherData.id });
@@ -301,8 +298,9 @@ export default {
 }
 
 .copy-button {
-    background-color: #409eff;;
-    border-color: #409eff; 
+    background-color: #409eff;
+    ;
+    border-color: #409eff;
     color: white;
     border: none;
     padding: 5px 10px;
@@ -504,8 +502,9 @@ hr {
 }
 
 .dialog-actions button:hover {
-    background-color: #409eff;;
-    border-color: #409eff; 
+    background-color: #409eff;
+    ;
+    border-color: #409eff;
     color: white;
 }
 

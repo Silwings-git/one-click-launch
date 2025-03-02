@@ -20,10 +20,10 @@
             <div style="display: flex;align-items: center; gap: 10px;">
 
                 <el-tooltip v-if="isNewLauncher" content="取消新建" placement="top">
-                    <Close theme="outline" size="20" fill="#333" @click="handleNewLauncher" />
+                    <Close theme="outline" size="20" fill="#a19797" @click="handleNewLauncher" />
                 </el-tooltip>
                 <el-tooltip v-else content="新建编组" placement="top">
-                    <Add theme="outline" size="20" fill="#333" @click="handleNewLauncher" />
+                    <Add theme="outline" size="20" fill="#a19797" @click="handleNewLauncher" />
                 </el-tooltip>
 
                 <el-select v-if="!isNewLauncher" append-to=".home" v-model="targetLauncher" style="width: 240px;"
@@ -35,7 +35,6 @@
             </div>
         </div>
 
-        <!-- 按钮 -->
         <div style="display: flex; justify-content: flex-end;gap:10px;align-items: center; margin-top: 20px;">
             <button class="cancel-button" @click="cancelDragDrop">取消</button>
             <button class="confirm-button" @click="confirmDragDrop">确定</button>
@@ -66,7 +65,7 @@ export default {
         const theme = inject('theme');
         const selectPathList = ref(props.pathList);
         const launchers = ref([]);
-        const targetLauncher = ref({});
+        const targetLauncher = ref();
         const isNewLauncher = ref(false);
         const newLauncherName = ref("");
 
@@ -77,7 +76,9 @@ export default {
 
         const initTargetLauncher = async () => {
             if (launchers.value.length > 0) {
-                targetLauncher.value = launchers.value[0];
+                targetLauncher.value = launchers.value[0].id;
+            } else if (launchers.value.length == 0) {
+                isNewLauncher.value = true;
             }
         };
 
@@ -88,18 +89,25 @@ export default {
 
         const cancelDragDrop = async () => {
             emit("cancel_drag_drop");
-        } 
-        
+        }
+
         const confirmDragDrop = async () => {
-            // todo 
-            console.log("保存")
+            let launcherId;
+            if (isNewLauncher.value) {
+                launcherId = await invoke("craete_launcher", { "name": newLauncherName.value });
+            } else {
+                launcherId = targetLauncher.value;
+            }
+
+            await invoke("add_resources", { "launcherId": launcherId, "resources": selectPathList.value.map(path => ({ "path": path })) });
+
             emit("confirm_drag_drop");
         }
 
-        // 在组件挂载时加载主题
         onMounted(() => {
-            queryLaunchers();
-            initTargetLauncher();
+            queryLaunchers().then(() => {
+                initTargetLauncher();
+            })
         });
 
         return {
@@ -142,12 +150,13 @@ label {
 
 button {
     padding: 10px 20px;
-    background-color: #409eff;;
+    background-color: #409eff;
+    ;
     color: white;
     border: none;
     border-radius: 5px;
     cursor: pointer;
-    border-color: #409eff; 
+    border-color: #409eff;
 }
 
 button:hover {
@@ -189,11 +198,12 @@ input[type="checkbox"] {
 
 .confirm-button {
     background-color: #409eff;
-    border-color: #409eff; 
+    border-color: #409eff;
     color: #fff;
 }
+
 .confirm-button:hover {
-    background-color: #66b1ff; 
+    background-color: #66b1ff;
     border-color: #66b1ff;
 }
 </style>

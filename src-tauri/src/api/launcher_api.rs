@@ -1,5 +1,6 @@
 use anyhow::Result;
 use rand::{Rng, distributions::Alphanumeric};
+use serde::Deserialize;
 use tauri::{AppHandle, State};
 use tracing::info;
 
@@ -7,7 +8,7 @@ use crate::{
     DatabaseManager,
     db::{
         launcher,
-        launcher_resource::{self, LauncherResource},
+        launcher_resource::{self, CreateResourceParam, LauncherResource},
     },
     error::OneClickLaunchError,
     events::{
@@ -27,7 +28,9 @@ pub async fn craete_launcher(
     db: State<'_, DatabaseManager>,
     name: Option<String>,
 ) -> Result<i64, OneClickLaunchError> {
-    let name = name.unwrap_or_else(generate_default_launcher_name);
+    let name = name
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(generate_default_launcher_name);
     let launcher_id = launcher::create(&db.pool, &name, None).await?;
 
     let _ = EventDispatcher::<LauncherBasicInfoUpdated>::send_event(
@@ -227,6 +230,35 @@ pub async fn add_resource(
     let resource_id = launcher_resource::create(&db.pool, launcher_id, &name, path).await?;
 
     Ok(resource_id)
+}
+
+/// 为启动器添加资源
+#[tauri::command]
+pub async fn add_resources(
+    db: State<'_, DatabaseManager>,
+    launcher_id: i64,
+    resources: Vec<ResourceParam>,
+) -> Result<(), OneClickLaunchError> {
+    let crps = resources
+        .into_iter()
+        .map(|r| CreateResourceParam {
+            name: r
+                .name
+                .filter(|s| !s.is_empty())
+                .unwrap_or_else(|| generate_name(r.path.as_str())),
+            path: r.path,
+        })
+        .collect::<Vec<CreateResourceParam>>();
+
+    launcher_resource::create_resources(&db.pool, launcher_id, &crps).await?;
+
+    Ok(())
+}
+
+#[derive(Deserialize, Debug)]
+pub struct ResourceParam {
+    pub name: Option<String>,
+    pub path: String,
 }
 
 fn generate_name(path: &str) -> String {

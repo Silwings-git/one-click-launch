@@ -1,4 +1,5 @@
 use anyhow::Result;
+use itertools::Itertools;
 use sqlx::{Executor, Sqlite};
 
 /// 使用FromRow宏把数据库中读取出来的数据转换成LauncherResource结构
@@ -7,6 +8,11 @@ use sqlx::{Executor, Sqlite};
 pub struct LauncherResource {
     pub id: i64,
     pub launcher_id: i64,
+    pub name: String,
+    pub path: String,
+}
+
+pub struct CreateResourceParam {
     pub name: String,
     pub path: String,
 }
@@ -41,6 +47,29 @@ where
         .await?
         .last_insert_rowid();
     Ok(id)
+}
+
+// 批量新增
+pub async fn create_resources<'a, E>(
+    executor: E,
+    launcher_id: i64,
+    resources: &[CreateResourceParam],
+) -> Result<()>
+where
+    E: Executor<'a, Database = Sqlite>,
+{
+    let mut query = String::from("INSERT INTO launcher_resource (launcher_id,name,path) VALUES ");
+
+    let values = resources
+        .iter()
+        .map(|r| format!(r#"('{}','{}','{}')"#, launcher_id, r.name, r.path))
+        .join(",");
+
+    query.push_str(values.as_str());
+
+    sqlx::query(&query).execute(executor).await?;
+
+    Ok(())
 }
 
 // 修改名称

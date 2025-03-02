@@ -174,6 +174,7 @@ pub async fn run() -> Result<()> {
             launcher_api::delete_launcher,
             launcher_api::modify_launcher_sort,
             launcher_api::add_resource,
+            launcher_api::add_resources,
             launcher_api::modify_resource_name,
             launcher_api::delete_resource,
             launcher_api::query_launchers,
@@ -298,10 +299,8 @@ fn handle_window_event(window: &tauri::Window, event: &tauri::WindowEvent) {
             }
         }
         tauri::WindowEvent::DragDrop(drag_drop_event) => {
-            // todo 优化
-            // 发送一个DragDropResource的事件,让前端打来导入框
-            if let DragDropEvent::Drop { paths, .. } = drag_drop_event {
-                if !paths.is_empty() {
+            match drag_drop_event {
+                DragDropEvent::Drop { paths, .. } if !paths.is_empty() => {
                     let _ = EventDispatcher::<DragDropResource>::send_event(
                         window.app_handle(),
                         DragDropResourcePaylod {
@@ -309,6 +308,7 @@ fn handle_window_event(window: &tauri::Window, event: &tauri::WindowEvent) {
                         },
                     );
                 }
+                _ => {}
             }
         }
         tauri::WindowEvent::Resized(physical_size) => {
