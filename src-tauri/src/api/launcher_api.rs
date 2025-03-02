@@ -2,6 +2,7 @@ use anyhow::Result;
 use rand::{Rng, distributions::Alphanumeric};
 use serde::Deserialize;
 use tauri::{AppHandle, State};
+use tauri_plugin_opener::OpenerExt;
 use tracing::info;
 
 use crate::{
@@ -18,7 +19,6 @@ use crate::{
             LauncherLaunchedPayload,
         },
     },
-    open_using_default_program,
 };
 
 /// 创建新的启动器
@@ -323,4 +323,20 @@ pub fn launch_resources(app: &AppHandle, resources: &[LauncherResource]) {
             );
         }
     }
+}
+
+/// 使用系统默认的程序打开指定的文件或 URL。
+///
+/// # 参数
+/// - `app`: 应用程序状态的引用，用于访问 Tauri 的应用句柄。
+/// - `path`: 表示文件路径或 URL 的字符串切片。
+///
+/// # 返回值
+/// - `Ok(())` 表示操作成功。
+/// - `Err(OneClickLaunchError)` 表示操作失败。
+pub fn open_using_default_program(app: &AppHandle, path: &str) -> Result<(), OneClickLaunchError> {
+    app.opener()
+        .open_path(path, None::<&str>)
+        .map_err(|e| OneClickLaunchError::ExecutionError(e.to_string()))?;
+    Ok(())
 }

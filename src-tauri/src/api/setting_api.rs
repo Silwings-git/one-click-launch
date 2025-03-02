@@ -1,3 +1,4 @@
+use sqlx::{Executor, Sqlite};
 use tauri::{AppHandle, State};
 
 use crate::{
@@ -49,4 +50,18 @@ pub async fn read_all_setting(
 ) -> Result<Vec<Settings>, OneClickLaunchError> {
     let setting = settings::read_all(&db.pool).await?;
     Ok(setting)
+}
+
+pub async fn check_launch_then_exit<'a, E>(executor: E) -> Result<bool, OneClickLaunchError>
+where
+    E: Executor<'a, Database = Sqlite>,
+{
+    match settings::read(executor, "launch_then_exit").await {
+        Ok(Some(setting)) => Ok(string_to_bool(&setting.value)),
+        _ => Ok(false),
+    }
+}
+
+fn string_to_bool(s: &str) -> bool {
+    matches!(s.trim().to_lowercase().as_str(), "true")
 }

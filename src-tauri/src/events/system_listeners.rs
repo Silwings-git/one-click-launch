@@ -3,8 +3,7 @@ use tracing::{debug, error};
 
 use crate::{
     DatabaseManager,
-    api::{launcher_api, window_api},
-    check_launch_then_exit,
+    api::{launcher_api, setting_api::check_launch_then_exit, window_api},
     constants::{AUTO_START_FLAG, THEME_KEY},
     db::{launcher_resource, settings},
     events::EventDispatcher,
