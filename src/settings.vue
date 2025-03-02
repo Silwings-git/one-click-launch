@@ -138,7 +138,7 @@ export default {
 
         const loadLaunchThenExit = async () => {
             const kv = await invoke("read_setting", { key: "launch_then_exit" });
-            launchThenExit.value = kv == null || kv.value === "true";
+            launchThenExit.value = kv?.value === "true";
         };
 
         const loadCloseMainPanel = async () => {
