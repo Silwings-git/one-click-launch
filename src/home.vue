@@ -278,7 +278,7 @@ export default {
   height: 200px;
 }
 
-.modal-content.dark /deep/ .el-select .el-select__wrapper {
+.modal-content.dark :deep() .el-select .el-select__wrapper {
   background-color: rgba(30, 31, 34);
   color: rgba(188, 190, 196);
 }
