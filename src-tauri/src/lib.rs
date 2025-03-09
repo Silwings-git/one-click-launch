@@ -104,11 +104,11 @@ pub async fn run() -> Result<()> {
 
     tauri::Builder::default()
         .setup(move |app| {
-            // 初始化窗口
-            setup_tray(app.handle())?;
-
             // 注册监听器,之后添加新的监听器时在这个方法内部添加
             register_listeners(app.handle());
+
+            // 初始化窗口
+            setup_tray(app.handle())?;
 
             // 当所有初始化都完成后发送应用程序启动完成事件
             EventDispatcher::<ApplicationStartupComplete>::send_event(
@@ -128,7 +128,9 @@ pub async fn run() -> Result<()> {
         // 优先注册单例插件
         .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
             info!("{}, {argv:?}, {cwd}", app.package_info().name);
-            let windows = app.get_webview_window("main").unwrap();
+            let windows = app
+                .get_webview_window(constants::MAIN_WINDOW_LABEL)
+                .unwrap();
             if windows.is_visible().unwrap() {
                 let _ = windows.unmaximize();
             }

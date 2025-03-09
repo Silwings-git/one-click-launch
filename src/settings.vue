@@ -8,6 +8,11 @@
         </div>
 
         <div class="m-4" style="display: flex;justify-content: space-between; align-items: center;">
+            <p style="margin-right: 10px;">开机启动后最小化到系统托盘</p>
+            <input type="checkbox" v-model="hideAfterAutoStart" @change="toggleHideAfterAutoStart" />
+        </div>
+
+        <div class="m-4" style="display: flex;justify-content: space-between; align-items: center;">
             <div style="display: flex;align-items: center;">
                 <p style="margin-right: 10px;">启动编组后退出</p>
                 <el-tooltip content="在启动某个编组后退出应用程序" placement="top">
@@ -68,6 +73,7 @@ export default {
         const theme = inject('theme');
         const autoLaunch = ref(false);
         const toggleLock = ref(false);
+        const hideAfterAutoStart = ref(false);
         const launchers = ref([]);
         const autoStartLauncherIds = ref([]);
         const launchThenExit = ref(false);
@@ -141,6 +147,19 @@ export default {
             launchThenExit.value = kv?.value === "true";
         };
 
+        const toggleLaunchThenExit = async () => {
+            await invoke("save_setting", { key: "launch_then_exit", value: launchThenExit.value ? "true" : "false" });
+        };
+
+        const loadHideAfterAutoStart = async () => {
+            const kv = await invoke("read_setting", { key: "hide_after_auto_start" });
+            hideAfterAutoStart.value = kv?.value === "true";
+        };
+
+        const toggleHideAfterAutoStart = async () => {
+            await invoke("save_setting", { key: "hide_after_auto_start", value: hideAfterAutoStart.value ? "true" : "false" });
+        };
+
         const loadCloseMainPanel = async () => {
             const kv = await invoke("read_setting", { key: "close_main_panel" });
             if (null == kv?.value) {
@@ -154,10 +173,6 @@ export default {
             await invoke("save_setting", { key: "close_main_panel", value: closeMainPanel.value });
         };
 
-        const toggleLaunchThenExit = async () => {
-            await invoke("save_setting", { key: "launch_then_exit", value: launchThenExit.value ? "true" : "false" });
-        };
-
         // 在组件挂载时加载主题
         onMounted(() => {
             loadTheme();
@@ -165,6 +180,7 @@ export default {
             refreshAutoStartLaunchers();
             loadLaunchThenExit();
             loadCloseMainPanel();
+            loadHideAfterAutoStart();
         });
 
         return {
@@ -180,7 +196,9 @@ export default {
             toggleLaunchThenExit,
             closeMainPanel,
             saveCloseMainPanel,
-            loadCloseMainPanel
+            loadCloseMainPanel,
+            hideAfterAutoStart,
+            toggleHideAfterAutoStart
         };
     }
 };

@@ -22,7 +22,9 @@ use crate::{
 use super::{launcher_api, setting_api};
 
 pub fn hide_window(app: &AppHandle) -> Result<(), OneClickLaunchError> {
-    let window = app.get_webview_window("main").unwrap();
+    let window = app
+        .get_webview_window(constants::MAIN_WINDOW_LABEL)
+        .unwrap();
     window.hide()?;
     Ok(())
 }
@@ -57,7 +59,7 @@ pub async fn refresh_tray(app: AppHandle) -> Result<(), OneClickLaunchError> {
 }
 
 pub fn change_windows_theme(app: &AppHandle, theme: &str) -> Result<(), OneClickLaunchError> {
-    if let Some(window) = app.get_webview_window("main") {
+    if let Some(window) = app.get_webview_window(constants::MAIN_WINDOW_LABEL) {
         window.set_theme(match theme {
             "dark" => Some(Theme::Dark),
             "light" => Some(Theme::Light),
@@ -133,20 +135,6 @@ pub fn handle_window_event(window: &tauri::Window, event: &tauri::WindowEvent) {
             }
             _ => {}
         },
-        tauri::WindowEvent::Resized(physical_size) => {
-            if physical_size.width == 0 && physical_size.height == 0 {
-                // 页面最小化时忽略
-                return;
-            }
-            // 如果窗口大小过小，强制调整到正常大小
-            if physical_size.width < WINDOW_MIN_WIDTH || physical_size.height < WINDOW_MIN_HEIGHT {
-                let _ = window.set_size(tauri::Size::Logical(tauri::LogicalSize {
-                    width: WINDOW_MIN_WIDTH as f64,
-                    height: WINDOW_MIN_HEIGHT as f64,
-                }));
-                debug!("窗口大小过小，触发窗口大小重置: ps: {:?}", physical_size);
-            }
-        }
         _ => {}
     }
 }
@@ -169,7 +157,7 @@ pub fn setup_tray(app: &AppHandle) -> Result<()> {
             } => {
                 // 当用户点击系统托盘时使应用程序取消最小化,显示并聚焦
                 let app = tray.app_handle();
-                if let Some(window) = app.get_webview_window("main") {
+                if let Some(window) = app.get_webview_window(constants::MAIN_WINDOW_LABEL) {
                     let _ = window.unminimize();
                     let _ = window.show();
                     let _ = window.set_focus();

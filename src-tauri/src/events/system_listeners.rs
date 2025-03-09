@@ -3,8 +3,14 @@ use tracing::{debug, error};
 
 use crate::{
     DatabaseManager,
-    api::{launcher_api, setting_api::check_launch_then_exit, window_api},
-    constants::{AUTO_START_FLAG, THEME_KEY},
+    api::{
+        launcher_api,
+        setting_api::{self, check_launch_then_exit},
+        window_api,
+    },
+    constants::{
+        self, AUTO_START_FLAG, AUTO_START_LAUNCHER_IDS_KEY, HIDE_AFTER_AUTO_START_KEY, THEME_KEY,
+    },
     db::{launcher_resource, settings},
     events::EventDispatcher,
 };
@@ -50,6 +56,7 @@ fn register_application_startup_complete_listeners(app: &AppHandle) {
     let app_cloned = app.clone();
     EventSystem::register_listener(app, ApplicationStartupComplete, move |payload| {
         debug!("application_startup_complete_listeners 处理中");
+        hide_after_auto_start(&app_cloned, &payload);
         refresh_tray(&app_cloned);
         launch_auto_start_launchers(&app_cloned, &payload);
         debug!("application_startup_complete_listeners 处理完成");
@@ -78,7 +85,46 @@ fn refresh_tray(app: &AppHandle) {
     });
 }
 
-/// 注册应用程序启动完成监听器: 启动自启动启动器
+/// 应用程序自动启动后隐藏
+fn hide_after_auto_start(app: &AppHandle, payload: &ApplicationStartupCompletePayload) {
+    if payload.args.contains(&AUTO_START_FLAG) {
+        debug!(
+            "hide_after_auto_start 判断为自动启动, 命令行参数: {:?}",
+            payload.args
+        );
+
+        let inner_app = app.clone();
+
+        tauri::async_runtime::spawn(async move {
+            let app_cloned = inner_app.clone();
+
+            let db_manager = app_cloned.state::<DatabaseManager>();
+
+            let window = app_cloned
+                .get_webview_window(constants::MAIN_WINDOW_LABEL)
+                .unwrap();
+
+            match settings::read(&db_manager.pool, HIDE_AFTER_AUTO_START_KEY)
+                .await
+                .ok()
+                .flatten()
+            {
+                Some(settings) if setting_api::string_to_bool(&settings.value) => {
+                    let _ = window.hide();
+                }
+                _ => {
+                    let _ = window.show();
+                }
+            }
+        });
+    } else {
+        let window = app
+            .get_webview_window(constants::MAIN_WINDOW_LABEL)
+            .unwrap();
+        let _ = window.show();
+    }
+}
+
 fn launch_auto_start_launchers(app: &AppHandle, payload: &ApplicationStartupCompletePayload) {
     // 检查启动参数, 当命令包含`--auto`时表示是操作系统触发的自动启动
     if payload.args.contains(&AUTO_START_FLAG) {
@@ -95,7 +141,7 @@ fn launch_auto_start_launchers(app: &AppHandle, payload: &ApplicationStartupComp
             let db_manager = app_cloned.state::<DatabaseManager>();
 
             if let Ok(Some(settings)) =
-                settings::read(&db_manager.pool, "auto_start_launcher_ids").await
+                settings::read(&db_manager.pool, AUTO_START_LAUNCHER_IDS_KEY).await
             {
                 if let Ok(auto_start_launcher_ids) =
                     serde_json::from_str::<Vec<i64>>(&settings.value)

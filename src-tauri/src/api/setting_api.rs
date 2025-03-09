@@ -62,6 +62,6 @@ where
     }
 }
 
-fn string_to_bool(s: &str) -> bool {
+pub fn string_to_bool(s: &str) -> bool {
     matches!(s.trim().to_lowercase().as_str(), "true")
 }
