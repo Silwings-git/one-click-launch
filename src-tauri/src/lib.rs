@@ -165,6 +165,7 @@ pub async fn run() -> Result<()> {
             setting_api::save_setting,
             setting_api::read_setting,
             setting_api::read_all_setting,
+            window_api::create_handler_shortcut,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

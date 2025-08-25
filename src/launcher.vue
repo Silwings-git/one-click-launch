@@ -1,5 +1,5 @@
 <template>
-    <div class="launcher">
+    <div class="launcher"  @contextmenu="handleRightClick">
         <div class="header">
             <span v-if="!isEditing" class="name" @dblclick="editLauncherName" title="双击修改名称">
                 {{ this.data.name }}
@@ -248,6 +248,11 @@ export default {
         const moveLauncher = (type) => {
             emit("launcher-moved", props.launcherData.id, type);
         };
+        
+        const handleRightClick = (type) => {
+            emit('show-context-menu', props.launcherData, type);
+        };
+
         const debounce = (func, delay) => {
             let timer;
             return function (...args) {
@@ -287,7 +292,8 @@ export default {
             moveLauncher,
             debounce,
             debouncedLaunch,
-            openPath
+            openPath,
+            handleRightClick
         };
     }
 };

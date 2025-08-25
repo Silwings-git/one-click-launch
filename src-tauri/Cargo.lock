@@ -2735,6 +2735,7 @@ name = "one-click-launch"
 version = "1.0.3"
 dependencies = [
  "anyhow",
+ "dirs 5.0.1",
  "itertools 0.14.0",
  "lazy_static",
  "rand 0.8.5",
