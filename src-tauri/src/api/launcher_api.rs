@@ -301,7 +301,25 @@ pub async fn launch(app: AppHandle, launcher_id: i64) -> Result<(), OneClickLaun
         OneClickLaunchError::ExecutionError("Unable to get DatabaseManager".to_string()),
     )?;
 
-    let resources = launcher_resource::query_by_launcher_id(&db.pool, launcher_id).await?;
+    let mut resources = launcher_resource::query_by_launcher_id(&db.pool, launcher_id).await?;
+
+    // 必须从启动资源中排除自己,防止出现死循环
+    let app_path = current_exe_path_str()?;
+    resources.retain(|e| {
+        // 检查路径是否包含空格
+        if e.path.contains(' ') {
+            // 按空格拆分并取第一个部分进行比较
+            e.path.split_whitespace().next() == Some(&app_path)
+        } else {
+            // 不包含空格时直接比较
+            e.path.eq(&app_path)
+        }
+    });
+
+    if resources.is_empty() {
+        tracing::debug!("资源列表为空");
+        return Ok(());
+    }
 
     launch_resources(&app, &resources);
 
@@ -354,16 +372,9 @@ pub async fn create_handler_shortcut(
     launcher_id: i64,
     db: State<'_, DatabaseManager>,
 ) -> Result<String, OneClickLaunchError> {
-    // 获取当前应用程序的绝对路径
-    let exe_path = std::env::current_exe()?;
-
-    // 转换为 Windows 可识别的普通路径
-    let mut app_path = exe_path.to_string_lossy().to_string();
-    if app_path.starts_with(r"\\?\") {
-        app_path = app_path.trim_start_matches(r"\\?\").to_string();
-    }
-
     let launcher = launcher::find_by_id(&db.pool, launcher_id).await?;
+
+    let app_path = current_exe_path_str()?;
 
     // 构建参数
     let args = Some(vec![format!("launch {}", launcher_id)]);
@@ -376,4 +387,16 @@ pub async fn create_handler_shortcut(
         None,
     )
     .map(|path| path.to_string_lossy().to_string())
+}
+
+fn current_exe_path_str() -> Result<String, OneClickLaunchError> {
+    // 获取当前应用程序的绝对路径
+    let exe_path = std::env::current_exe()?;
+
+    // 转换为 Windows 可识别的普通路径
+    let mut app_path = exe_path.to_string_lossy().to_string();
+    if app_path.starts_with(r"\\?\") {
+        app_path = app_path.trim_start_matches(r"\\?\").to_string();
+    }
+    Ok(app_path)
 }

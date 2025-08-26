@@ -74,7 +74,7 @@
 
             </div>
         </div>
-        <button class="launch-button" :disabled="isLaunching" @click="launch">
+        <button class="launch-button" :disabled="isLaunching || !data.resources?.length" @click="launch">
             <span v-if="!isLaunching">启动</span>
             <span v-else>
                 <svg class="loading-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
@@ -248,7 +248,7 @@ export default {
         const moveLauncher = (type) => {
             emit("launcher-moved", props.launcherData.id, type);
         };
-        
+
         const handleRightClick = (type) => {
             emit('show-context-menu', props.launcherData, type);
         };
@@ -562,4 +562,27 @@ hr {
     /* 点击时缩小效果 */
     transform: scale(0.95);
 }
+
+.launch-button:disabled {
+    background-color: #c6c8ca;
+    color: #6c757d;
+    cursor: not-allowed;
+    /* 取消 hover/active 的缩放效果 */
+    transform: none !important;
+    /* 确保禁用状态可被识别 */
+    pointer-events: auto;
+}
+
+.launch-button:disabled:hover {
+    background-color: #c6c8ca;
+    /* 取消 hover 放大 */
+    transform: none;
+}
+
+.launch-button:disabled:active {
+    background-color: #c6c8ca;
+    /* 取消 active 缩小 */
+    transform: none;
+}
+
 </style>

@@ -2,6 +2,7 @@ use lazy_static::lazy_static;
 
 lazy_static! {
     pub static ref AUTO_START_FLAG: String = "--auto".to_string();
+    pub static ref LAUNCH_SPECIFIED_LAUNCHER_KEY: String = "launch".to_string();
 }
 
 pub static APPLICATION_NAME: &str = "一键启动";

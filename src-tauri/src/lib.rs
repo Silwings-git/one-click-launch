@@ -15,6 +15,8 @@ use tauri::tray::TrayIcon;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_autostart::MacosLauncher;
 use tracing::{debug, info};
+
+use crate::constants::LAUNCH_SPECIFIED_LAUNCHER_KEY;
 mod api;
 mod constants;
 mod db;
@@ -125,12 +127,12 @@ pub async fn run() -> Result<()> {
         .manage(ScaleFactorChangedState {
             last_reset: Mutex::new(None),
         })
-        // 优先注册单例插件
+        // 必须优先注册单例插件
         .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
             info!("run app: {}, {argv:?}, {cwd}", app.package_info().name);
 
-            if let Some(Ok(launcher_id)) =
-                extract_arg_value(&argv, "launch").map(|value| value.parse::<i64>())
+            if let Some(Ok(launcher_id)) = extract_arg_value(&argv, &LAUNCH_SPECIFIED_LAUNCHER_KEY)
+                .map(|value| value.parse::<i64>())
             {
                 let app_cloned = app.clone();
                 tokio::spawn(async move {
@@ -189,7 +191,7 @@ fn register_listeners(app: &AppHandle) {
     register_system_listeners(app);
 }
 
-fn extract_arg_value(argv: &[String], key: &str) -> Option<String> {
+pub fn extract_arg_value(argv: &[String], key: &str) -> Option<String> {
     let mut iter = argv.iter();
     while let Some(arg) = iter.next() {
         if arg == key {
