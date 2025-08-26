@@ -193,9 +193,9 @@ export default {
 
     // 创建launcher快捷键
     const createLauncherShortcut = async () => {
-      console.log("创建launcher快捷键: ", selectedLauncherMenuLauncher.value?.id);
-      await invoke("create_handler_shortcut",{launcherId: selectedLauncherMenuLauncher.value.id });
+      let res = await invoke("create_handler_shortcut",{launcherId: selectedLauncherMenuLauncher.value.id });
       showLauncherMenu.value = false;
+      toast.success("快捷方式创建成功\r\n位置: " + res);
     }
 
     // 在组件挂载时加载主题

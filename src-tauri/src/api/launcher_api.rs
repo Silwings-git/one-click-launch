@@ -1,12 +1,13 @@
 use anyhow::Result;
 use rand::{Rng, distributions::Alphanumeric};
 use serde::Deserialize;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 use tauri_plugin_opener::OpenerExt;
 use tracing::info;
 
 use crate::{
     DatabaseManager,
+    api::window_api,
     db::{
         launcher,
         launcher_resource::{self, CreateResourceParam, LauncherResource},
@@ -295,11 +296,11 @@ pub async fn delete_resource(
 
 /// 启动启动器
 #[tauri::command]
-pub async fn launch(
-    app: AppHandle,
-    db: State<'_, DatabaseManager>,
-    launcher_id: i64,
-) -> Result<(), OneClickLaunchError> {
+pub async fn launch(app: AppHandle, launcher_id: i64) -> Result<(), OneClickLaunchError> {
+    let db: State<'_, DatabaseManager> = app.try_state().ok_or(
+        OneClickLaunchError::ExecutionError("Unable to get DatabaseManager".to_string()),
+    )?;
+
     let resources = launcher_resource::query_by_launcher_id(&db.pool, launcher_id).await?;
 
     launch_resources(&app, &resources);
@@ -346,4 +347,33 @@ pub fn open_using_default_program(app: &AppHandle, path: &str) -> Result<(), One
         .open_path(path, None::<&str>)
         .map_err(|e| OneClickLaunchError::ExecutionError(e.to_string()))?;
     Ok(())
+}
+
+#[tauri::command]
+pub async fn create_handler_shortcut(
+    launcher_id: i64,
+    db: State<'_, DatabaseManager>,
+) -> Result<String, OneClickLaunchError> {
+    // 获取当前应用程序的绝对路径
+    let exe_path = std::env::current_exe()?;
+
+    // 转换为 Windows 可识别的普通路径
+    let mut app_path = exe_path.to_string_lossy().to_string();
+    if app_path.starts_with(r"\\?\") {
+        app_path = app_path.trim_start_matches(r"\\?\").to_string();
+    }
+
+    let launcher = launcher::find_by_id(&db.pool, launcher_id).await?;
+
+    // 构建参数
+    let args = Some(vec![format!("launch {}", launcher_id)]);
+
+    window_api::create_shortcut(
+        &app_path,
+        &launcher.name,
+        args,
+        // None 表示保存到桌面
+        None,
+    )
+    .map(|path| path.to_string_lossy().to_string())
 }
