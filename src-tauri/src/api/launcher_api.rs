@@ -284,6 +284,17 @@ pub async fn modify_resource_name(
     Ok(())
 }
 
+/// 修改资源路径
+#[tauri::command]
+pub async fn modify_resource_path(
+    db: State<'_, DatabaseManager>,
+    resource_id: i64,
+    path: &str,
+) -> Result<(), OneClickLaunchError> {
+    launcher_resource::modify_path(&db.pool, resource_id, path).await?;
+    Ok(())
+}
+
 /// 删除启动器中的资源
 #[tauri::command]
 pub async fn delete_resource(

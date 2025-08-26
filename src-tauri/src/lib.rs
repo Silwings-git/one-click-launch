@@ -172,6 +172,7 @@ pub async fn run() -> Result<()> {
             launcher_api::add_resource,
             launcher_api::add_resources,
             launcher_api::modify_resource_name,
+            launcher_api::modify_resource_path,
             launcher_api::delete_resource,
             launcher_api::query_launchers,
             launcher_api::launch,

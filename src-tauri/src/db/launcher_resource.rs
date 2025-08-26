@@ -85,6 +85,19 @@ where
     Ok(())
 }
 
+// 修改路径
+pub async fn modify_path<'a, E>(executor: E, resource_id: i64, path: &str) -> Result<()>
+where
+    E: Executor<'a, Database = Sqlite>,
+{
+    sqlx::query("UPDATE launcher_resource SET path = ? WHERE id = ?")
+        .bind(path)
+        .bind(resource_id)
+        .execute(executor)
+        .await?;
+    Ok(())
+}
+
 // 按launcher_id删除
 pub async fn delete_by_launcher<'a, E>(executor: E, launcher_id: i64) -> Result<()>
 where

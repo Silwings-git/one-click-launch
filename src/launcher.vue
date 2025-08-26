@@ -1,5 +1,5 @@
 <template>
-    <div class="launcher"  @contextmenu="handleRightClick">
+    <div class="launcher" @contextmenu="handleRightClick">
         <div class="header">
             <span v-if="!isEditing" class="name" @dblclick="editLauncherName" title="双击修改名称">
                 {{ this.data.name }}
@@ -49,14 +49,36 @@
 
             <div class="data-row" v-for="(item, index) in data.resources" :key="item.id" :title="item.path">
                 <span class="data-text">
+                     <!-- 名称编辑部分 -->
                     <span v-if="!editingResourceState.get(item.id)" @dblclick="editResourceName(item)" title="双击修改名称">
                         <strong>{{ item.name }}:</strong>
                     </span>
-                    <input v-if="editingResourceState.get(item.id)" v-model="newResourceName" class="name-input"
-                        @blur="saveResourceName(item)" @keyup.enter="saveResourceName(item)" />
-                    <span>
+                    <input 
+                        v-if="editingResourceState.get(item.id)" 
+                        v-model="resourceEditData.get(item.id).name" 
+                        class="name-input"
+                        @blur="saveResourceName(item)" 
+                        @keyup.enter="saveResourceName(item)" 
+                        ref="getResourceNameInputRef(item.id)"
+                    />
+
+                    <!-- 路径编辑部分 -->
+                    <span 
+                        v-if="!editingResourcePathState.get(item.id)" 
+                        @dblclick="editResourcePath(item)" 
+                        title="双击修改路径"
+                        class="path-text"
+                    >
                         {{ item.path }}
                     </span>
+                    <input 
+                        v-if="editingResourcePathState.get(item.id)" 
+                        v-model="resourceEditData.get(item.id).path" 
+                        class="path-input"
+                        @blur="saveResourcePath(item)" 
+                        @keyup.enter="saveResourcePath(item)"
+                        ref="getResourcePathInputRef(item.id)"
+                    />
                 </span>
                 <Press class="press" theme="outline" size="19" @click="openPath(item)" />
                 <el-popconfirm title="确定要删除吗？" confirm-button-text="确认" cancel-button-text="取消"
@@ -124,48 +146,161 @@ export default {
         const addUrlNamePlaceholder = ref("网页");
         // 是否正在启动
         const isLaunching = ref(false);
-        const editingResourceState = ref(new Map());
-        const newResourceName = ref("");
+      // 编辑状态管理 - 使用Map存储每个资源的编辑状态
+        const editingResourceState = ref(new Map());         // 名称编辑状态
+        const editingResourcePathState = ref(new Map());     // 路径编辑状态
+        
+        // 核心修复：使用Map为每个资源存储独立的编辑数据
+        const resourceEditData = ref(new Map());             // 存储格式: { 资源ID => { name: '', path: '' } }
+        
+        // 输入框引用管理
         const launcherNameInputRef = ref(null);
-        const resourceNameInputRef = ref(null);
+        const resourceNameInputRefs = ref(new Map());        // 名称输入框引用
+        const resourcePathInputRefs = ref(new Map());        // 路径输入框引用
+        
         const debouncedLaunch = ref(null);
+      
+        // 获取名称输入框引用
+        const getResourceNameInputRef = (id) => {
+            return (el) => {
+                if (el) {
+                    resourceNameInputRefs.value.set(id, el);
+                } else {
+                    resourceNameInputRefs.value.delete(id);
+                }
+            };
+        };
+
+        // 获取路径输入框引用
+        const getResourcePathInputRef = (id) => {
+            return (el) => {
+                if (el) {
+                    resourcePathInputRefs.value.set(id, el);
+                } else {
+                    resourcePathInputRefs.value.delete(id);
+                }
+            };
+        };
 
         const editLauncherName = () => {
-            isEditing.value = true; // 进入编辑模式
-            newLauncherName.value = props.launcherData.name; // 预填当前名称
+            isEditing.value = true;
+            newLauncherName.value = props.launcherData.name;
             nextTick(() => {
                 launcherNameInputRef.value && launcherNameInputRef.value.focus();
             });
         };
+
         const saveLauncherName = async () => {
             if (newLauncherName.value.trim()) {
-                newLauncherName.value = newLauncherName.value.trim(); // 保存修改后的名称
+                newLauncherName.value = newLauncherName.value.trim();
             }
             await invoke("modify_launcher_name", { launcherId: props.launcherData.id, name: newLauncherName.value });
-            isEditing.value = false; // 退出编辑模式
+            isEditing.value = false;
             emit("launcher-updated", props.launcherData.id);
         };
+
         const editResourceName = (item) => {
-            editingResourceState.value.set(item.id, true); // 进入编辑模式
-            newResourceName.value = item.name; // 预填当前名称
+            // 关闭当前资源的路径编辑状态（避免冲突）
+            editingResourcePathState.value.set(item.id, false);
+            
+            // 标记为名称编辑状态
+            editingResourceState.value.set(item.id, true);
+            
+            // 初始化该资源的编辑数据（确保每个资源有独立存储）
+            const currentData = resourceEditData.value.get(item.id) || { name: '', path: '' };
+            currentData.name = item.name;  // 仅更新名称字段
+            resourceEditData.value.set(item.id, currentData);
+            
+            // 自动聚焦
             nextTick(() => {
-                // 自动聚焦到输入框
-                resourceNameInputRef.value && resourceNameInputRef.value.focus();
+                const inputRef = resourceNameInputRefs.value.get(item.id);
+                inputRef && inputRef.focus();
             });
         };
+
         const saveResourceName = async (item) => {
-            if (newResourceName.value.trim()) {
-                const trimName = newResourceName.value.trim();
-                if (item.name === trimName) {
-                    editingResourceState.value.set(item.id, false); // 退出编辑模式
-                    return;
-                }
-                newResourceName.value = trimName; // 保存修改后的名称
+            // 获取该资源的独立编辑数据
+            const editData = resourceEditData.value.get(item.id);
+            if (!editData) return;
+            
+            const trimmedName = editData.name.trim();
+            
+            // 验证和退出编辑状态
+            if (!trimmedName) {
+                editingResourceState.value.set(item.id, false);
+                toast.warning("名称不能为空！");
+                return;
             }
-            await invoke("modify_resource_name", { resourceId: item.id, name: newResourceName.value });
-            editingResourceState.value.set(item.id, false); // 退出编辑模式
-            emit("launcher-updated", props.launcherData.id);
+            
+            if (trimmedName === item.name) {
+                editingResourceState.value.set(item.id, false);
+                return;
+            }
+            
+            // 保存修改
+            try {
+                await invoke("modify_resource_name", { 
+                    resourceId: item.id, 
+                    name: trimmedName 
+                });
+                editingResourceState.value.set(item.id, false);
+                emit("launcher-updated", props.launcherData.id);
+            } catch (error) {
+                console.error("修改资源名称失败:", error);
+            }
         };
+
+        const editResourcePath = (item) => {
+            // 关闭当前资源的名称编辑状态（避免冲突）
+            editingResourceState.value.set(item.id, false);
+            
+            // 标记为路径编辑状态
+            editingResourcePathState.value.set(item.id, true);
+            
+            // 初始化该资源的编辑数据
+            const currentData = resourceEditData.value.get(item.id) || { name: '', path: '' };
+            currentData.path = item.path;  // 仅更新路径字段
+            resourceEditData.value.set(item.id, currentData);
+            
+            // 自动聚焦
+            nextTick(() => {
+                const inputRef = resourcePathInputRefs.value.get(item.id);
+                inputRef && inputRef.focus();
+            });
+        };
+
+        const saveResourcePath = async (item) => {
+            // 获取该资源的独立编辑数据
+            const editData = resourceEditData.value.get(item.id);
+            if (!editData) return;
+            
+            const trimmedPath = editData.path.trim();
+            
+            // 验证和退出编辑状态
+            if (!trimmedPath) {
+                editingResourcePathState.value.set(item.id, false);
+                toast.warning("路径不能为空！");
+                return;
+            }
+            
+            if (trimmedPath === item.path) {
+                editingResourcePathState.value.set(item.id, false);
+                return;
+            }
+            
+            // 保存修改
+            try {
+                await invoke("modify_resource_path", {
+                    resourceId: item.id,
+                    path: trimmedPath
+                });
+                editingResourcePathState.value.set(item.id, false);
+                emit("launcher-updated", props.launcherData.id);
+            } catch (error) {
+                console.error("修改资源路径失败:", error);
+            }
+        };
+
         const addRow = async (directory) => {
             try {
 
@@ -260,6 +395,7 @@ export default {
                 timer = setTimeout(() => func.apply(this, args), delay);
             };
         };
+
         onBeforeMount(() => {
             // 包装 launch 方法为防抖函数
             debouncedLaunch.value = debounce(launch, 2000); // 2秒防抖
@@ -275,8 +411,6 @@ export default {
             addUrlContent,
             addUrlNamePlaceholder,
             isLaunching,
-            editingResourceState,
-            newResourceName,
             editLauncherName,
             saveLauncherName,
             editResourceName,
@@ -293,7 +427,15 @@ export default {
             debounce,
             debouncedLaunch,
             openPath,
-            handleRightClick
+            handleRightClick,
+            editResourcePath,
+            saveResourcePath,
+            editingResourceState,
+            editingResourcePathState,
+            resourceEditData,
+            launcherNameInputRef,
+            resourceNameInputRefs,
+            resourcePathInputRefs
         };
     }
 };
@@ -584,5 +726,4 @@ hr {
     /* 取消 active 缩小 */
     transform: none;
 }
-
 </style>
