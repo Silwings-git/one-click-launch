@@ -2732,14 +2732,16 @@ checksum = "945462a4b81e43c4e3ba96bd7b49d834c6f61198356aa858733bc4acf3cbe62e"
 
 [[package]]
 name = "one-click-launch"
-version = "1.0.3"
+version = "1.0.4"
 dependencies = [
  "anyhow",
+ "dirs 5.0.1",
  "itertools 0.14.0",
  "lazy_static",
  "rand 0.8.5",
  "serde",
  "serde_json",
+ "shlex",
  "sqlx",
  "tauri",
  "tauri-build",

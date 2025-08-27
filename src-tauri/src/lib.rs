@@ -15,6 +15,8 @@ use tauri::tray::TrayIcon;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_autostart::MacosLauncher;
 use tracing::{debug, info};
+
+use crate::constants::LAUNCH_SPECIFIED_LAUNCHER_KEY;
 mod api;
 mod constants;
 mod db;
@@ -125,17 +127,29 @@ pub async fn run() -> Result<()> {
         .manage(ScaleFactorChangedState {
             last_reset: Mutex::new(None),
         })
-        // 优先注册单例插件
+        // 必须优先注册单例插件
         .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
-            info!("{}, {argv:?}, {cwd}", app.package_info().name);
-            let windows = app
-                .get_webview_window(constants::MAIN_WINDOW_LABEL)
-                .unwrap();
-            if windows.is_visible().unwrap() {
-                let _ = windows.unmaximize();
+            info!("run app: {}, {argv:?}, {cwd}", app.package_info().name);
+
+            if let Some(Ok(launcher_id)) = extract_arg_value(&argv, &LAUNCH_SPECIFIED_LAUNCHER_KEY)
+                .map(|value| value.parse::<i64>())
+            {
+                let app_cloned = app.clone();
+                tokio::spawn(async move {
+                    if let Err(e) = launcher_api::launch(app_cloned, launcher_id).await {
+                        tracing::error!("launcher launch fail: {}", e);
+                    }
+                });
+            } else {
+                let windows = app
+                    .get_webview_window(constants::MAIN_WINDOW_LABEL)
+                    .unwrap();
+                if windows.is_visible().unwrap() {
+                    let _ = windows.unmaximize();
+                }
+                let _ = windows.show();
+                let _ = windows.set_focus();
             }
-            let _ = windows.show();
-            let _ = windows.set_focus();
             app.emit("single-instance", Payload { args: argv, cwd })
                 .unwrap();
         }))
@@ -158,10 +172,12 @@ pub async fn run() -> Result<()> {
             launcher_api::add_resource,
             launcher_api::add_resources,
             launcher_api::modify_resource_name,
+            launcher_api::modify_resource_path,
             launcher_api::delete_resource,
             launcher_api::query_launchers,
             launcher_api::launch,
             launcher_api::open_path,
+            launcher_api::create_handler_shortcut,
             setting_api::save_setting,
             setting_api::read_setting,
             setting_api::read_all_setting,
@@ -174,4 +190,16 @@ pub async fn run() -> Result<()> {
 fn register_listeners(app: &AppHandle) {
     // 注册系统级别的监听器
     register_system_listeners(app);
+}
+
+pub fn extract_arg_value(argv: &[String], key: &str) -> Option<String> {
+    let mut iter = argv.iter();
+    while let Some(arg) = iter.next() {
+        if arg == key {
+            if let Some(val) = iter.next() {
+                return Some(val.clone());
+            }
+        }
+    }
+    None
 }

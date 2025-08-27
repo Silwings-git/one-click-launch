@@ -14,13 +14,19 @@ pub enum OneClickLaunchError {
     AnyhowError(#[from] anyhow::Error),
 
     #[error("{0}")]
-    InfoError(#[from] std::io::Error),
+    IOError(#[from] std::io::Error),
 
     #[error("{0}")]
     TauriError(#[from] tauri::Error),
 
     #[error("Unable to convert from {0} to Event")]
     EventConvertError(String),
+
+    #[error("{0}")]
+    WindowsCommonError(String),
+
+    #[error("{0}")]
+    WindowsError(#[from] windows::core::Error),
 }
 
 // we must manually implement serde::Serialize

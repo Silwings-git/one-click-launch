@@ -9,10 +9,12 @@ use crate::{
         window_api,
     },
     constants::{
-        self, AUTO_START_FLAG, AUTO_START_LAUNCHER_IDS_KEY, HIDE_AFTER_AUTO_START_KEY, THEME_KEY,
+        self, AUTO_START_FLAG, AUTO_START_LAUNCHER_IDS_KEY, HIDE_AFTER_AUTO_START_KEY,
+        LAUNCH_SPECIFIED_LAUNCHER_KEY, THEME_KEY,
     },
     db::{launcher_resource, settings},
     events::EventDispatcher,
+    extract_arg_value,
 };
 
 use super::{
@@ -59,6 +61,7 @@ fn register_application_startup_complete_listeners(app: &AppHandle) {
         hide_after_auto_start(&app_cloned, &payload);
         refresh_tray(&app_cloned);
         launch_auto_start_launchers(&app_cloned, &payload);
+        launch_specified_launcher(&app_cloned, &payload);
         debug!("application_startup_complete_listeners 处理完成");
     });
 }
@@ -181,6 +184,20 @@ fn launch_auto_start_launchers(app: &AppHandle, payload: &ApplicationStartupComp
             "launch_auto_start_launchers 判断为非自动启动, 命令行参数: {:?}",
             payload.args
         );
+    }
+}
+
+fn launch_specified_launcher(app: &AppHandle, payload: &ApplicationStartupCompletePayload) {
+    // 如果启动命令指定了LAUNCH_SPECIFIED_LAUNCHER_KEY, 需要启动指定的编组
+    if let Some(Ok(launcher_id)) = extract_arg_value(&payload.args, &LAUNCH_SPECIFIED_LAUNCHER_KEY)
+        .map(|value| value.parse::<i64>())
+    {
+        let app_cloned = app.clone();
+        tokio::spawn(async move {
+            if let Err(e) = launcher_api::launch(app_cloned, launcher_id).await {
+                tracing::error!("launcher launch fail: {}", e);
+            }
+        });
     }
 }
 

@@ -1,12 +1,15 @@
+use std::{path::Path, process::Command};
+
 use anyhow::Result;
 use rand::{Rng, distributions::Alphanumeric};
 use serde::Deserialize;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 use tauri_plugin_opener::OpenerExt;
 use tracing::info;
 
 use crate::{
     DatabaseManager,
+    api::window_api,
     db::{
         launcher,
         launcher_resource::{self, CreateResourceParam, LauncherResource},
@@ -283,6 +286,17 @@ pub async fn modify_resource_name(
     Ok(())
 }
 
+/// 修改资源路径
+#[tauri::command]
+pub async fn modify_resource_path(
+    db: State<'_, DatabaseManager>,
+    resource_id: i64,
+    path: &str,
+) -> Result<(), OneClickLaunchError> {
+    launcher_resource::modify_path(&db.pool, resource_id, path).await?;
+    Ok(())
+}
+
 /// 删除启动器中的资源
 #[tauri::command]
 pub async fn delete_resource(
@@ -295,12 +309,26 @@ pub async fn delete_resource(
 
 /// 启动启动器
 #[tauri::command]
-pub async fn launch(
-    app: AppHandle,
-    db: State<'_, DatabaseManager>,
-    launcher_id: i64,
-) -> Result<(), OneClickLaunchError> {
-    let resources = launcher_resource::query_by_launcher_id(&db.pool, launcher_id).await?;
+pub async fn launch(app: AppHandle, launcher_id: i64) -> Result<(), OneClickLaunchError> {
+    let db: State<'_, DatabaseManager> = app.try_state().ok_or(
+        OneClickLaunchError::ExecutionError("Unable to get DatabaseManager".to_string()),
+    )?;
+
+    let mut resources = launcher_resource::query_by_launcher_id(&db.pool, launcher_id).await?;
+
+    tracing::debug!("启动编组原始资源列表: {resources:?}");
+
+    // 必须从启动资源中排除自己,防止出现死循环
+    let app_path = current_exe_path_str()?;
+    resources.retain(|e| {
+        // 检查路径是否指向当前应用程序
+        !e.path.starts_with(&app_path)
+    });
+
+    if resources.is_empty() {
+        tracing::debug!("资源列表为空");
+        return Ok(());
+    }
 
     launch_resources(&app, &resources);
 
@@ -342,8 +370,78 @@ pub fn launch_resources(app: &AppHandle, resources: &[LauncherResource]) {
 /// - `Ok(())` 表示操作成功。
 /// - `Err(OneClickLaunchError)` 表示操作失败。
 pub fn open_using_default_program(app: &AppHandle, path: &str) -> Result<(), OneClickLaunchError> {
+    match try_open_as_command(path) {
+        Ok(true) => return Ok(()), // 已经作为程序执行
+        Ok(false) => {
+            // 不是程序，交给 opener
+            open_path_with_opener(app, path)?;
+        }
+        Err(e) => {
+            tracing::debug!("作为命令执行失败: {e:?}，尝试默认打开");
+            open_path_with_opener(app, path)?;
+        }
+    }
+
+    Ok(())
+}
+
+fn open_path_with_opener(app: &AppHandle, path: &str) -> Result<(), OneClickLaunchError> {
     app.opener()
         .open_path(path, None::<&str>)
         .map_err(|e| OneClickLaunchError::ExecutionError(e.to_string()))?;
     Ok(())
+}
+
+fn try_open_as_command(path: &str) -> Result<bool, OneClickLaunchError> {
+    let parts = shlex::split(path)
+        .ok_or_else(|| OneClickLaunchError::ExecutionError("无法解析路径".to_string()))?;
+
+    if parts.is_empty() {
+        return Ok(false);
+    }
+
+    let program = &parts[0];
+    let args = &parts[1..];
+
+    // 如果第一个部分是存在的文件（.exe/.bat/.sh 等），才当成命令执行
+    if Path::new(program).exists() {
+        Command::new(program).args(args).spawn()?;
+        return Ok(true);
+    }
+
+    Ok(false)
+}
+
+#[tauri::command]
+pub async fn create_handler_shortcut(
+    launcher_id: i64,
+    db: State<'_, DatabaseManager>,
+) -> Result<String, OneClickLaunchError> {
+    let launcher = launcher::find_by_id(&db.pool, launcher_id).await?;
+
+    let app_path = current_exe_path_str()?;
+
+    // 构建参数
+    let args = Some(vec![format!("launch {}", launcher_id)]);
+
+    window_api::create_shortcut(
+        &app_path,
+        &launcher.name,
+        args,
+        // None 表示保存到桌面
+        None,
+    )
+    .map(|path| path.to_string_lossy().to_string())
+}
+
+fn current_exe_path_str() -> Result<String, OneClickLaunchError> {
+    // 获取当前应用程序的绝对路径
+    let exe_path = std::env::current_exe()?;
+
+    // 转换为 Windows 可识别的普通路径
+    let mut app_path = exe_path.to_string_lossy().to_string();
+    if app_path.starts_with(r"\\?\") {
+        app_path = app_path.trim_start_matches(r"\\?\").to_string();
+    }
+    Ok(app_path)
 }
