@@ -16,7 +16,8 @@
     </div>
     <div class="launcher-container" v-if="editMode">
       <launcher v-for="(item, index) in launchers" :key="index" :launcherData="item"
-        @launcher-updated="refreshLaunchers" @launcher-moved="moveLauncher" @settings-updated="refreshLaunchers" />
+        @launcher-updated="refreshLaunchers" @launcher-moved="moveLauncher" @settings-updated="refreshLaunchers"
+        @show-context-menu="toggleShowContextMenu" />
     </div>
     <div :class="['launcher-lite-container', theme]" v-if="!editMode">
       <launcher-lite v-for="(item, index) in launchers" :key="index" :launcherData="item"
@@ -35,6 +36,16 @@
       <div :class="['modal-content', theme]" @click.stop>
         <dragDropResource :pathList="dragDropResourcePaths" @cancel_drag_drop="cleanDragDropResourcePaths"
           @confirm_drag_drop="confirmDragDrop" />
+      </div>
+    </div>
+    <!-- 全局右键菜单 -->
+    <div v-if="showLauncherMenu" class="custom-contextmenu"
+      :style="{ top: launcherMenuPositionTop + 'px', left: launcherMenuPositionLeft + 'px', zIndex: 1000 }" @click.stop>
+      <div class="menu-item" @click="logLauncherName">
+        当前编组: {{ selectedLauncherMenuLauncher?.name }}
+      </div>
+      <div class="menu-item" @click="createLauncherShortcut">
+        创建快捷方式
       </div>
     </div>
   </div>
@@ -67,12 +78,28 @@ export default {
     const showSetting = ref(false);
     const dragDropResourcePaths = ref([]);
 
+    // 右键菜单相关状态
+    const showLauncherMenu = ref(false);
+    const launcherMenuPositionTop = ref(0);
+    const launcherMenuPositionLeft = ref(0);
+    const selectedLauncherMenuLauncher = ref(null);
+
+    // 全局点击事件，关闭右键菜单
+    const handleGlobalClick = (e) => {
+      // 如果点击的不是右键菜单本身，则关闭菜单
+      if (!e.target.closest('.custom-contextmenu')) {
+        showLauncherMenu.value = false;
+        selectedLauncherMenuLauncher.value = null;
+      }
+    };
+
     const setupEventListener = async () => {
       listen('launcher:drag_drop_resource', async (event) => {
         if (dragDropResourcePaths.value.length == 0) {
           dragDropResourcePaths.value = Array.from(event.payload.paths);
         }
       });
+      document.addEventListener('click', handleGlobalClick);
     };
     const launch = async (launcherId) => {
       await invoke("launch", { launcherId: launcherId });
@@ -142,6 +169,35 @@ export default {
       await refreshLaunchers();
     };
 
+    // 显示右键菜单
+    const toggleShowContextMenu = (launcherData, event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      // 设置菜单位置
+      launcherMenuPositionTop.value = event.clientY;
+      launcherMenuPositionLeft.value = event.clientX;
+
+      // 记录选中的launcher
+      selectedLauncherMenuLauncher.value = launcherData;
+
+      // 显示菜单
+      showLauncherMenu.value = true;
+    };
+
+    // 右键菜单操作
+    const logLauncherName = () => {
+      console.log("当前Launcher名称: ", selectedLauncherMenuLauncher.value?.name);
+      showLauncherMenu.value = false;
+    };
+
+    // 创建launcher快捷键
+    const createLauncherShortcut = async () => {
+      let res = await invoke("create_handler_shortcut",{launcherId: selectedLauncherMenuLauncher.value.id });
+      showLauncherMenu.value = false;
+      toast.success("快捷方式创建成功\r\n位置: " + res);
+    }
+
     // 在组件挂载时加载主题
     onMounted(() => {
       setupEventListener();
@@ -149,6 +205,11 @@ export default {
       // 页面加载时刷新 Launcher 列表
       refreshLaunchers();
     });
+
+    // 清理全局事件监听
+    const onUnmounted = () => {
+      document.removeEventListener('click', handleGlobalClick);
+    };
 
     return {
       theme,
@@ -165,7 +226,14 @@ export default {
       closeSetting,
       dragDropResourcePaths,
       cleanDragDropResourcePaths,
-      confirmDragDrop
+      confirmDragDrop,
+      toggleShowContextMenu,
+      showLauncherMenu,
+      launcherMenuPositionTop,
+      launcherMenuPositionLeft,
+      selectedLauncherMenuLauncher,
+      logLauncherName,
+      createLauncherShortcut
     };
   }
 };
@@ -427,4 +495,44 @@ button:hover {
   color: #f5ebeb;
 }
 
+/* 自定义右键菜单样式 */
+.custom-contextmenu {
+  position: fixed;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 5px 0;
+  min-width: 150px;
+  max-width: 300px;
+}
+
+.dark .custom-contextmenu {
+  background-color: #2c2c2c;
+  border-color: #444;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  color: #ccc;
+}
+
+.menu-item {
+  padding: 8px 15px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-size: 14px;
+}
+
+.menu-item:hover {
+  background-color: #f0f0f0;
+}
+
+/* 深色模式 hover */
+.menu-item:hover.dark {
+  background-color: #444;
+  color: #fff;
+  /*  hover 时文字更醒目 */
+}
+
+.dark .menu-item:hover {
+  background-color: #444;
+}
 </style>

@@ -1,6 +1,5 @@
 use std::{sync::Mutex, time::Instant};
 
-use anyhow::Result;
 use tauri::{
     AppHandle, DragDropEvent, Manager, State, Theme,
     menu::{MenuBuilder, MenuItem},
@@ -104,7 +103,7 @@ pub fn handle_window_event(window: &tauri::Window, event: &tauri::WindowEvent) {
 
             if let Ok(ref mut last_reset) = lock {
                 // 500ms防抖间隔
-                if last_reset.map_or(true, |t| now.duration_since(t).as_millis() > 500) {
+                if last_reset.is_none_or(|t| now.duration_since(t).as_millis() > 500) {
                     if let Ok(physical_size) = window.inner_size() {
                         // 如果窗口大小异常，强制调整到正常大小
                         if physical_size.width != WINDOW_MIN_WIDTH
@@ -140,7 +139,7 @@ pub fn handle_window_event(window: &tauri::Window, event: &tauri::WindowEvent) {
 }
 
 /// 初始化窗口
-pub fn setup_tray(app: &AppHandle) -> Result<()> {
+pub fn setup_tray(app: &AppHandle) -> Result<(), OneClickLaunchError> {
     let tray_icon = TrayIconBuilder::new()
         // 设置系统托盘的提示,鼠标悬浮时会显示
         .tooltip(constants::APPLICATION_NAME)
@@ -179,9 +178,7 @@ pub fn setup_tray(app: &AppHandle) -> Result<()> {
                 if let Ok(launcher_id) = id.parse::<i64>() {
                     let app_cloned = app.clone();
                     tauri::async_runtime::spawn(async move {
-                        let inner_app = app_cloned.clone();
-                        let db = inner_app.state();
-                        launcher_api::launch(app_cloned, db, launcher_id).await
+                        launcher_api::launch(app_cloned, launcher_id).await
                     });
                 }
             }
@@ -201,4 +198,75 @@ pub fn setup_tray(app: &AppHandle) -> Result<()> {
 /// 用于保存上次处理分辨率变更事件的时间
 pub struct ScaleFactorChangedState {
     pub last_reset: Mutex<Option<Instant>>,
+}
+
+use std::os::windows::ffi::OsStrExt;
+use std::path::PathBuf;
+use windows::{
+    Win32::{
+        System::Com::{
+            CLSCTX_INPROC_SERVER, COINIT_APARTMENTTHREADED, CoCreateInstance, CoInitializeEx,
+            CoUninitialize, IPersistFile,
+        },
+        UI::Shell::{IShellLinkW, ShellLink},
+    },
+    core::{HSTRING, Interface, PCWSTR},
+};
+
+/// 创建 Windows 快捷方式 (.lnk 文件)
+pub fn create_shortcut(
+    app_path: &str,
+    shortcut_name: &str,
+    args: Option<Vec<String>>,
+    target_dir: Option<&str>,
+) -> Result<PathBuf, OneClickLaunchError> {
+    unsafe {
+        // 初始化 COM
+        CoInitializeEx(None, COINIT_APARTMENTTHREADED).ok()?;
+
+        // 创建 IShellLink 实例
+        let shell_link: IShellLinkW = CoCreateInstance(&ShellLink, None, CLSCTX_INPROC_SERVER)?;
+
+        // 设置应用路径
+        shell_link.SetPath(&HSTRING::from(dbg!(app_path)))?;
+
+        // 设置参数
+        if let Some(arguments) = args {
+            let arg_str = arguments.join(" ");
+            shell_link.SetArguments(&HSTRING::from(arg_str))?;
+        }
+
+        // 设置工作目录（使用 app_path 的父目录）
+        if let Some(parent) = std::path::Path::new(app_path).parent() {
+            shell_link.SetWorkingDirectory(&HSTRING::from(parent.to_string_lossy().to_string()))?;
+        }
+
+        // 获取 IPersistFile 接口
+        let persist_file: IPersistFile = shell_link.cast()?;
+
+        // 目标目录（默认桌面）
+        let save_dir = if let Some(dir) = target_dir {
+            PathBuf::from(dir)
+        } else {
+            dirs::desktop_dir().ok_or_else(|| anyhow::anyhow!("无法获取桌面路径"))?
+        };
+
+        // 拼接快捷方式路径
+        let lnk_path = save_dir.join(format!("{}.lnk", shortcut_name));
+
+        // 转换为宽字符串
+        let wide: Vec<u16> = lnk_path
+            .as_os_str()
+            .encode_wide()
+            .chain(std::iter::once(0))
+            .collect();
+
+        // 保存
+        persist_file.Save(PCWSTR::from_raw(wide.as_ptr()), true)?;
+
+        // 释放 COM
+        CoUninitialize();
+
+        Ok(lnk_path)
+    }
 }
