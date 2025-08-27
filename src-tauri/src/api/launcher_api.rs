@@ -1,3 +1,5 @@
+use std::{path::Path, process::Command};
+
 use anyhow::Result;
 use rand::{Rng, distributions::Alphanumeric};
 use serde::Deserialize;
@@ -314,17 +316,13 @@ pub async fn launch(app: AppHandle, launcher_id: i64) -> Result<(), OneClickLaun
 
     let mut resources = launcher_resource::query_by_launcher_id(&db.pool, launcher_id).await?;
 
+    tracing::debug!("启动编组原始资源列表: {resources:?}");
+
     // 必须从启动资源中排除自己,防止出现死循环
     let app_path = current_exe_path_str()?;
     resources.retain(|e| {
-        // 检查路径是否包含空格
-        if e.path.contains(' ') {
-            // 按空格拆分并取第一个部分进行比较
-            e.path.split_whitespace().next() == Some(&app_path)
-        } else {
-            // 不包含空格时直接比较
-            e.path.eq(&app_path)
-        }
+        // 检查路径是否指向当前应用程序
+        !e.path.starts_with(&app_path)
     });
 
     if resources.is_empty() {
@@ -372,10 +370,46 @@ pub fn launch_resources(app: &AppHandle, resources: &[LauncherResource]) {
 /// - `Ok(())` 表示操作成功。
 /// - `Err(OneClickLaunchError)` 表示操作失败。
 pub fn open_using_default_program(app: &AppHandle, path: &str) -> Result<(), OneClickLaunchError> {
+    match try_open_as_command(path) {
+        Ok(true) => return Ok(()), // 已经作为程序执行
+        Ok(false) => {
+            // 不是程序，交给 opener
+            open_path_with_opener(app, path)?;
+        }
+        Err(e) => {
+            tracing::debug!("作为命令执行失败: {e:?}，尝试默认打开");
+            open_path_with_opener(app, path)?;
+        }
+    }
+
+    Ok(())
+}
+
+fn open_path_with_opener(app: &AppHandle, path: &str) -> Result<(), OneClickLaunchError> {
     app.opener()
         .open_path(path, None::<&str>)
         .map_err(|e| OneClickLaunchError::ExecutionError(e.to_string()))?;
     Ok(())
+}
+
+fn try_open_as_command(path: &str) -> Result<bool, OneClickLaunchError> {
+    let parts = shlex::split(path)
+        .ok_or_else(|| OneClickLaunchError::ExecutionError("无法解析路径".to_string()))?;
+
+    if parts.is_empty() {
+        return Ok(false);
+    }
+
+    let program = &parts[0];
+    let args = &parts[1..];
+
+    // 如果第一个部分是存在的文件（.exe/.bat/.sh 等），才当成命令执行
+    if Path::new(program).exists() {
+        Command::new(program).args(args).spawn()?;
+        return Ok(true);
+    }
+
+    Ok(false)
 }
 
 #[tauri::command]

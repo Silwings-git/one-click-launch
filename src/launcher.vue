@@ -1,7 +1,7 @@
 <template>
     <div class="launcher" @contextmenu="handleRightClick">
         <div class="header">
-            <span v-if="!isEditing" class="name" @dblclick="editLauncherName" title="双击修改名称">
+            <span v-if="!isEditing" class="name" @dblclick="editLauncherName" :title="data.name +' (双击修改)'">
                 {{ this.data.name }}
             </span>
             <input v-if="isEditing" v-model="newLauncherName" class="name-input" @blur="saveLauncherName"
@@ -50,7 +50,7 @@
             <div class="data-row" v-for="(item, index) in data.resources" :key="item.id" :title="item.path">
                 <span class="data-text">
                      <!-- 名称编辑部分 -->
-                    <span v-if="!editingResourceState.get(item.id)" @dblclick="editResourceName(item)" title="双击修改名称">
+                    <span v-if="!editingResourceState.get(item.id)" @dblclick="editResourceName(item)" :title="item.name + ' (双击修改)'">
                         <strong>{{ item.name }}:</strong>
                     </span>
                     <input 
@@ -66,7 +66,7 @@
                     <span 
                         v-if="!editingResourcePathState.get(item.id)" 
                         @dblclick="editResourcePath(item)" 
-                        title="双击修改路径"
+                        :title="item.path + ' (双击修改)'"
                         class="path-text"
                     >
                         {{ item.path }}
