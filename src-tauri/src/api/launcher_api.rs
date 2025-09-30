@@ -1,4 +1,4 @@
-use std::{path::Path, process::Command};
+use std::{path::Path, process::Command, time::Duration};
 
 use anyhow::Result;
 use rand::{Rng, distributions::Alphanumeric};
@@ -10,9 +10,11 @@ use tracing::info;
 use crate::{
     DatabaseManager,
     api::window_api,
+    constants::RESOURCE_LAUNCH_INTERVAL,
     db::{
         launcher,
         launcher_resource::{self, CreateResourceParam, LauncherResource},
+        settings,
     },
     error::OneClickLaunchError,
     events::{
@@ -330,7 +332,9 @@ pub async fn launch(app: AppHandle, launcher_id: i64) -> Result<(), OneClickLaun
         return Ok(());
     }
 
-    launch_resources(&app, &resources);
+    let delay = get_launch_delay(&app).await?;
+
+    launch_resources(&app, &resources, delay).await;
 
     EventDispatcher::<LauncherLaunched>::send_event(
         &app,
@@ -349,13 +353,17 @@ pub async fn open_path(app: AppHandle, path: &str) -> Result<(), OneClickLaunchE
     Ok(())
 }
 
-pub fn launch_resources(app: &AppHandle, resources: &[LauncherResource]) {
-    for resource in resources.iter() {
+pub async fn launch_resources(app: &AppHandle, resources: &[LauncherResource], delay: Duration) {
+    for (i, resource) in resources.iter().enumerate() {
         if let Err(e) = open_using_default_program(app, resource.path.as_str()) {
             info!(
                 "启动资源失败,资源名称: {:?},资源路径: {:?},错误信息: {:?}",
                 &resource.name, &resource.path, e
             );
+        }
+        // 最后一个资源之后不再等待
+        if i < resources.len() - 1 {
+            tokio::time::sleep(delay).await;
         }
     }
 }
@@ -444,4 +452,17 @@ fn current_exe_path_str() -> Result<String, OneClickLaunchError> {
         app_path = app_path.trim_start_matches(r"\\?\").to_string();
     }
     Ok(app_path)
+}
+
+pub async fn get_launch_delay(app: &AppHandle) -> Result<Duration> {
+    let db: State<'_, DatabaseManager> = app.try_state().ok_or(
+        OneClickLaunchError::ExecutionError("Unable to get DatabaseManager".to_string()),
+    )?;
+
+    Ok(settings::read(&db.pool, RESOURCE_LAUNCH_INTERVAL)
+        .await
+        .unwrap_or_default()
+        .map(|setting| setting.value)
+        .map(|d| d.parse::<humantime::Duration>().unwrap().into())
+        .unwrap_or_else(|| Duration::from_secs(0)))
 }
