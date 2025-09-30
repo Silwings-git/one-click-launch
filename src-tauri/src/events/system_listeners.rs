@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use tauri::{AppHandle, Manager};
 use tracing::{debug, error};
 
@@ -157,7 +159,11 @@ fn launch_auto_start_launchers(app: &AppHandle, payload: &ApplicationStartupComp
                     {
                         // 如果用户设置的自启启动器为空则不执行启动
                         if !launcher_resources.is_empty() {
-                            launcher_api::launch_resources(&app_cloned, &launcher_resources);
+                            let delay = launcher_api::get_launch_delay(&app_cloned)
+                                .await
+                                .unwrap_or_else(|_e| Duration::from_secs(0));
+                            launcher_api::launch_resources(&app_cloned, &launcher_resources, delay)
+                                .await;
                             debug!("自启启动器已启动. 启动器信息: {:?}", launcher_resources);
                             let _ = EventDispatcher::<LauncherLaunched>::send_event(
                                 &app_cloned,

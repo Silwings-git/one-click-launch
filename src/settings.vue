@@ -38,6 +38,20 @@
         </div>
 
         <div class="setting-item">
+            <div class="setting-label with-tooltip">
+                <p class="setting-label">资源启动间隔</p>
+                <el-tooltip content="多个资源启动时的时间间隔（单位：秒）" placement="top">
+                    <Help :class="['help', theme]" theme="outline" size="15" />
+                </el-tooltip>
+            </div>
+            <el-select append-to=".home" v-model="resourceLaunchInterval" @change="saveResourceLaunchInterval"
+                class="setting-select" placeholder="请选择间隔" style="width: 240px">
+                <el-option v-for="option in launchIntervalOptions" :key="option.value" :label="option.label"
+                    :value="option.value" />
+            </el-select>
+        </div>
+
+        <div class="setting-item">
             <p class="setting-label">主题</p>
             <el-select append-to=".home" v-model="theme" @change="changeTheme" placeholder="请选择" class="setting-select">
                 <el-option v-for="item in themes" :key="item.id" :label="item.value" :value="item.id" />
@@ -86,7 +100,17 @@ export default {
         const closeMainPanel = ref("m1");
         // 初始状态提示
         const appVersion = ref('加载中...');
-
+        // 下拉选项配置
+        const launchIntervalOptions = ref([
+            { value: '0s', label: '0 秒' },
+            { value: '1s', label: '1 秒' },
+            { value: '2s', label: '2 秒' },
+            { value: '3s', label: '3 秒' },
+            { value: '4s', label: '4 秒' },
+            { value: '5s', label: '5 秒' }
+        ]);
+        // 间隔状态
+        const resourceLaunchInterval = ref(0);
         // 主题相关
         const loadTheme = async () => {
             try {
@@ -164,6 +188,23 @@ export default {
             } catch (error) {
                 console.error("保存自动启动编组失败:", error);
             }
+        };
+
+        // 加载已保存的间隔设置
+        const loadResourceLaunchInterval = async () => {
+            const savedInterval = await invoke("read_setting", { key: "resource_launch_interval" });
+            console.log("savedInterval:", savedInterval);
+            if (savedInterval?.value) {
+                resourceLaunchInterval.value = savedInterval?.value;
+            }
+        };
+
+        // 保存间隔设置
+        const saveResourceLaunchInterval = async () => {
+            await invoke("save_setting", {
+                key: "resource_launch_interval",
+                value: resourceLaunchInterval.value + ""
+            });
         };
 
         // 其他设置
@@ -252,7 +293,8 @@ export default {
                 loadLaunchThenExit(),
                 loadCloseMainPanel(),
                 loadHideAfterAutoStart(),
-                getAppVersion()
+                getAppVersion(),
+                loadResourceLaunchInterval()
             ]);
         });
 
@@ -272,7 +314,10 @@ export default {
             saveCloseMainPanel,
             hideAfterAutoStart,
             toggleHideAfterAutoStart,
-            openGitHubRepo
+            openGitHubRepo,
+            resourceLaunchInterval,
+            launchIntervalOptions,
+            saveResourceLaunchInterval
         };
     }
 };
