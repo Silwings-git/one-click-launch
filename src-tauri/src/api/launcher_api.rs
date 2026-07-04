@@ -401,6 +401,22 @@ fn open_path_with_opener(app: &AppHandle, path: &str) -> Result<(), OneClickLaun
 }
 
 fn try_open_as_command(path: &str) -> Result<bool, OneClickLaunchError> {
+    // 优先将原始路径作为程序直接启动，避免 shlex::split 将 Windows 反斜杠
+    // 误解析为转义字符导致路径损坏（如 E:\Game\test.bat → E:Gametest.bat）
+    if Path::new(path).exists() {
+        let mut cmd = Command::new(path);
+
+        if let Some(parent) = Path::new(path).parent() {
+            if parent.as_os_str().len() > 0 {
+                cmd.current_dir(parent);
+            }
+        }
+
+        cmd.spawn()?;
+        return Ok(true);
+    }
+
+    // 原始路径不是可执行文件，尝试 shlex 解析（处理带引号、带参数的命令）
     let parts = shlex::split(path)
         .ok_or_else(|| OneClickLaunchError::ExecutionError("无法解析路径".to_string()))?;
 
@@ -411,13 +427,10 @@ fn try_open_as_command(path: &str) -> Result<bool, OneClickLaunchError> {
     let program = &parts[0];
     let args = &parts[1..];
 
-    // 如果第一个部分是存在的文件（.exe/.bat/.sh 等），才当成命令执行
     if Path::new(program).exists() {
         let mut cmd = Command::new(program);
         cmd.args(args);
 
-        // 设置工作目录为被启动程序所在的目录
-        // 避免因工作目录不一致导致应用找不到相对路径的配置文件
         if let Some(parent) = Path::new(program).parent() {
             if parent.as_os_str().len() > 0 {
                 cmd.current_dir(parent);
