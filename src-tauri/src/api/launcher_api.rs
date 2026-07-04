@@ -413,7 +413,18 @@ fn try_open_as_command(path: &str) -> Result<bool, OneClickLaunchError> {
 
     // 如果第一个部分是存在的文件（.exe/.bat/.sh 等），才当成命令执行
     if Path::new(program).exists() {
-        Command::new(program).args(args).spawn()?;
+        let mut cmd = Command::new(program);
+        cmd.args(args);
+
+        // 设置工作目录为被启动程序所在的目录
+        // 避免因工作目录不一致导致应用找不到相对路径的配置文件
+        if let Some(parent) = Path::new(program).parent() {
+            if parent.as_os_str().len() > 0 {
+                cmd.current_dir(parent);
+            }
+        }
+
+        cmd.spawn()?;
         return Ok(true);
     }
 
